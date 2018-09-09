@@ -1,8 +1,12 @@
+#! /usr/bin/env python
+import rospy
 import serial
 import threading
 import time
 import subprocess
-import rospy
+from std_msgs.msg import String
+# import hardware_module.comport_mainboard as mainboard
+# from hardware.msg import Launcher
 
 
 class ComportMainboard(threading.Thread):
@@ -26,7 +30,7 @@ class ComportMainboard(threading.Thread):
                     self.connection_opened = self.connection.isOpen()
                     time.sleep(0.5)
                 self.connection.flush()
-                print "mainboard: Port opened successfully"
+                print("mainboard: Port opened successfully")
             except Exception as e:
                 print(e)
                 continue
@@ -49,6 +53,12 @@ class ComportMainboard(threading.Thread):
         if self.connection_opened:
             self.write("d{}".format(value))
 
+
+    def test_led(self):
+        if self.connection_opened:
+            self.write("r")
+
+
     def close(self):
         if self.connection is not None and self.connection.isOpen():  # close coil
             try:
@@ -65,3 +75,38 @@ class ComportMainboard(threading.Thread):
             print('mainboard: opening failed')
             self.close()
             return
+
+
+class MainboardRunner():
+
+    board = None
+    launcherParams = String
+
+    def launcher_params_callback(self, launcherMsg):
+       self.launcherParams = launcherMsg
+
+    def run(self):
+        rospy.init_node("comport_mainboad", anonymous=True)
+        rospy.Subscriber("hardware_module/launcher", String, self.launcher_params_callback)
+        self.board = ComportMainboard()
+        self.board.run()
+
+        rate = rospy.Rate(60)
+        while not rospy.is_shutdown():
+            # self.sendSpeeds()
+            self.board.test_led()
+            rate.sleep()
+
+        print("closing board")
+        self.board.close()
+
+    def sendSpeeds(self):
+        self.board.servo(self.launcherParams.servoPos)
+        self.board.launch_motor(self.launcherParams.motorSpeed)
+
+if __name__ == '__main__':
+    try:
+        mainboard_runner = MainboardRunner()
+        mainboard_runner.run()
+    except rospy.ROSInterruptException:
+        pass
