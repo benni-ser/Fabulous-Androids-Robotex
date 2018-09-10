@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import rospy
-from hardware.src.comport_mainboard import ComportMainboard
+import numpy as np
+from hardware.comport_mainboard import ComportMainboard
 import cv2
 
 if __name__ == '__main__':
@@ -16,11 +17,7 @@ if __name__ == '__main__':
     		if key == ord("w"):
         		mainboard_runner.setDirection("0:0:0:0")
     		if key == ord("a"):
-        		setspeed(180)
-    		if key == ord("s"):
-        		setspeed(270)
-    		if key == ord("d"):
-        		setspeed(0)
+        		mainboard_runner.write("r\n")
 		if key == ord("g"):
                         mainboard_runner.getDirection()
     		if key == ord("z"):
