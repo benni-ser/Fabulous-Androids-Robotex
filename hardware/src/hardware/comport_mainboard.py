@@ -58,9 +58,12 @@ class ComportMainboard(threading.Thread):
             return
     def setDirection(self, value):
         msg = "sd:" + value
+	#print(msg)
         if self.connection_opened:
             self.write(msg)
+	    return self.connection.readline()
     def getDirection(self):
 	msg = "gs"
 	if self.connection_opened:
 	    self.write(msg)
+	    return self.connection.readline()
