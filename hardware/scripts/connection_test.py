@@ -20,8 +20,8 @@ class MainboardRunner():
 
         r = rospy.Rate(30)
         while not rospy.is_shutdown():
-            #self.board.setDirection("10:10:0:0")
-            print('test')
+            self.board.setDirection("10:-10:0:0")
+            #print('test')
             r.sleep()
 
         #self.board.write('r\n')
