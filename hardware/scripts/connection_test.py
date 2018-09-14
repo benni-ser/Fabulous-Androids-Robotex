@@ -13,39 +13,33 @@ class MainboardRunner():
         self.board = ComportMainboard()
         self.board.run()
 
-	'''print(self.board.getDirection())
-        self.board.write("g")
-	print(self.board.setDirection("10:10:0:0"))
-	print(self.board.getDirection())'''
+        '''print(self.board.getDirection())
+            self.board.write("g")
+        print(self.board.setDirection("10:10:0:0"))
+        print(self.board.getDirection())'''
 
-	r = rospy.Rate(30)
+        r = rospy.Rate(30)
         while not rospy.is_shutdown():
+            #self.board.setDirection("10:10:0:0")
+            print('test')
+            r.sleep()
+
+        #self.board.write('r\n')
+        '''r=rospy.Rate(30)
+            while not rospy.is_shutdown():
                 #self.board.setDirection("10:10:0:0")
-                print('test')
-                r.sleep()
+            print(self.board.getDirection())
+            self.board.write("g")
+            r.sleep()'''
 
-	#self.board.write('r\n')
-	'''r=rospy.Rate(30)
-        while not rospy.is_shutdown():
-        	#self.board.setDirection("10:10:0:0")
-		print(self.board.getDirection())
-		self.board.write("g")
-		r.sleep()'''
-
-        print "closing board"
+        print("closing board")
         self.board.close()
 
 
 
 if __name__ == '__main__':
     try:
-        '''mainboard_runner = ComportMainboard()
+        mainboard_runner = MainboardRunner()
         mainboard_runner.run()
-	# frame = np.zeros((200,200))
-	mainboard_runner.write('r')
-	mainboard_runner.setDirection("10:10:0:0")'''
-
-	mainboard_runner = MainboardRunner()
-	mainboard_runner.run()
     except rospy.ROSInterruptException:
         pass
