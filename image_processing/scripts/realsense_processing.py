@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import rospy
 import cv2
 import pyrealsense2 as rs
@@ -6,6 +7,12 @@ import numpy as np
 class RealsenseProcessing():
     def __init__(self):
         rospy.init_node("realsense_processing", anonymous=True)
+        self.pipeline = None
+        self.align = None
+        self.depth_image = None
+        self.regular_image = None
+        self.yuv = None
+        self.hsv = None
 
     def run(self):
         self.pipeline = rs.pipeline()
@@ -36,5 +43,11 @@ if __name__ == '__main__':
     try:
         camera_proc = RealsenseProcessing()
         camera_proc.run()
+	rate = rospy.Rate(60)
+	while not rospy.is_shutdown():
+            camera_proc.get_frame()
+            test = np.array(camera_proc.hsv)
+            print(test.shape)
+            rate.sleep()
     except rospy.ROSInterruptException:
         pass
