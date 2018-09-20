@@ -40,6 +40,10 @@ class ComportMainboard(threading.Thread):
             except:
                 print('mainboard: err write ' + comm)
 
+    def read_line(self):
+        if self.connection_opened:
+            return self.connection.readline()
+
     def close(self):
         if self.connection is not None and self.connection.isOpen():  # close coil
             try:
@@ -56,14 +60,3 @@ class ComportMainboard(threading.Thread):
             print('mainboard: opening failed')
             self.close()
             return
-    def setDirection(self, value):
-        msg = "sd:" + value
-	#print(msg)
-        if self.connection_opened:
-            self.write(msg)
-	    return self.connection.readline()
-    def getDirection(self):
-	msg = "gs"
-	if self.connection_opened:
-	    self.write(msg)
-	    return self.connection.readline()
