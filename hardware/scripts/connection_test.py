@@ -6,12 +6,11 @@ import cv2
 
 
 class MainboardRunner():
-
-    board = None
-
-    def run(self):
+    def __init__(self):
         rospy.init_node("connection_test", anonymous=True)
         self.board = ComportMainboard()
+
+    def run(self):
         self.board.run()
 
         r = rospy.Rate(30)
