@@ -1,0 +1,5 @@
+<launch>
+<param name="use_sim_time"  value="false" />
+<node pkg="game_logic" type="game_logic_program.py" name="game_logic_program" 
+output="screen"/>
+</launch>

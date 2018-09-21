@@ -4,7 +4,9 @@ import cv2
 import pyrealsense2 as rs
 import numpy as np
 from image_processing.ball_color_processing import detector
+from image_processing.msg import Point
 import time
+
 
 class RealsenseProcessing():
     def __init__(self):
@@ -56,11 +58,14 @@ if __name__ == '__main__':
             y = 0
             cam_proc.pub.publish(Point(x, y, 0))  # z-coordinate is not needed at this point
 
-            if i % 60 == 0: # for testing purposes
+            if i % 120 == 0: # for testing purposes
                 test = np.array(cam_proc.hsv)
                 l, w, v = test.shape
                 print("Color of middle point: "+str(test[l/2, w/2, :]))
-                print(str(contour_area))
+                print("contour_area: "+str(contour_area))
+                print("w: "+str(w))
+                print("cx: "+str(cx))
+                print("cy: "+str(cy))
                 path = "/home/intel/catkin_ws/src/image_processing/src/image_processing/"
                 filename = "res-" + str(time.time()).replace('.', '') + ".png"
                 cv2.imwrite(path + filename, res)
