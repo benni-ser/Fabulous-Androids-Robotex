@@ -54,21 +54,19 @@ if __name__ == '__main__':
             cam_proc.get_frame()
             real_ball_detector = detector("/home/intel/catkin_ws/src/image_processing/config/ball_colour_file.txt", "BallDetector")
             res, mask, cx, cy, contour_area, w = real_ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            x = 0
-            y = 0
-            cam_proc.pub.publish(Point(x, y, 0))  # z-coordinate is not needed at this point
+            cam_proc.pub.publish(Point(cx, cy, 0))
 
             if i % 120 == 0: # for testing purposes
-                test = np.array(cam_proc.hsv)
-                l, w, v = test.shape
-                print("Color of middle point: "+str(test[l/2, w/2, :]))
-                print("contour_area: "+str(contour_area))
+                #test = np.array(cam_proc.hsv)
+                #l, w, v = test.shape
+                #print("Color of middle point: "+str(test[l/2, w/2, :]))
+                #print("contour_area: "+str(contour_area))
                 print("w: "+str(w))
                 print("cx: "+str(cx))
                 print("cy: "+str(cy))
                 path = "/home/intel/catkin_ws/src/image_processing/src/image_processing/"
                 filename = "res-" + str(time.time()).replace('.', '') + ".png"
-                cv2.imwrite(path + filename, res)
+                #cv2.imwrite(path + filename, res)
             i += 1
             rate.sleep()
     except rospy.ROSInterruptException:
