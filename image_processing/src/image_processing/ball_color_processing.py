@@ -29,12 +29,7 @@ class detector:
         # Bitwise-AND mask and original image
         res = cv2.bitwise_and(frame, frame, mask=mask)
         im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        path = "/home/intel/catkin_ws/src/image_processing/src/image_processing/"
-        filename = "res-"+str(time.time()).replace('.','')+".png"
-        print(filename)
-        print(str(osp.exists(path)))
-        cv2.imwrite(path+filename, res)
-	if len(contours) != 0:
+        if len(contours) != 0:
 
             contourArea = []
             # find the biggest area
@@ -86,4 +81,4 @@ class detector:
             # draw the book contour (in green)
             cv2.rectangle(res, (x, y), (x + w, y + h), (0, 255, 0), 2)
         #print("w:", w)
-	return res, mask, cx, cy, contour_area, w
+        return res, mask, cx, cy, contour_area, w
