@@ -3,6 +3,7 @@ import rospy
 import cv2
 import pyrealsense2 as rs
 import numpy as np
+from image_processing.ball_color_processing import detector
 
 class RealsenseProcessing():
     def __init__(self):
@@ -43,11 +44,17 @@ if __name__ == '__main__':
     try:
         camera_proc = RealsenseProcessing()
         camera_proc.run()
-	rate = rospy.Rate(60)
+	rate = rospy.Rate(1)
+	i = 0
 	while not rospy.is_shutdown():
             camera_proc.get_frame()
+	    real_ball_detector = detector("/home/intel/catkin_ws/src/image_processing/config/ball_colour_file.txt", "BallDetector")
+	    result = real_ball_detector.detect(camera_proc.regular_image, camera_proc.hsv)
             test = np.array(camera_proc.hsv)
-            print(test.shape)
+            l, w, v = test.shape
+            if i % 1 == 0:
+                print(str(test[l/2, w/2, :]))
+            i += 1
             rate.sleep()
     except rospy.ROSInterruptException:
         pass
