@@ -3,8 +3,8 @@ import rospy
 import cv2
 import pyrealsense2 as rs
 import numpy as np
-from ball_color_processing import Detector
-from image_processing.msg import Point
+from image_processing.object_detector import Detector
+from general.msg import Point
 import time
 
 
@@ -52,8 +52,8 @@ if __name__ == '__main__':
         i = 0
         while not rospy.is_shutdown():
             cam_proc.get_frame()
-            real_ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_colour_file.txt", "BallDetector")
-            res, mask, cx, cy, contour_area, w = real_ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
+            ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_colour_file.txt", "BallDetector")
+            res, mask, cx, cy, contour_area, w = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             cam_proc.pub.publish(Point(cx, cy, 0))
 
             if i % 120 == 0: # for testing purposes

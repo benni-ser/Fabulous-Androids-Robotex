@@ -10,7 +10,22 @@ project(general)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
+  message_generation
 )
+
+add_message_files(
+        FILES
+        Point.msg
+)
+
+generate_messages(
+        DEPENDENCIES
+        std_msgs
+)
+
+catkin_package(
+        CATKIN_DEPENDS
+        message_runtime)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -101,12 +116,12 @@ find_package(catkin REQUIRED COMPONENTS
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
+#catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES general
 #  CATKIN_DEPENDS rospy std_msgs
 #  DEPENDS system_lib
-)
+#)
 
 ###########
 ## Build ##
