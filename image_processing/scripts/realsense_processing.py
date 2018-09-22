@@ -54,7 +54,10 @@ if __name__ == '__main__':
             cam_proc.get_frame()
             ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_colour_file.txt", "BallDetector")
             res, mask, cx, cy, contour_area, w = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            cam_proc.pub.publish(Point(cx, cy, 0))
+            if w > 4 and w < 90:
+                cam_proc.pub.publish(Point(cx, cy, 0))
+            else:
+                cam_proc.pub.publish(Point(-1, -1, 0))
 
             if i % 180 == 0: # for testing purposes
                 #test = np.array(cam_proc.hsv)
