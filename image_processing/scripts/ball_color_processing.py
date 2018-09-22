@@ -5,7 +5,7 @@ import os.path as osp
 import os
 
 
-class detector:
+class Detector:
     def __init__(self, colorConfig, name):
         self.name = name
         f = open(colorConfig)
