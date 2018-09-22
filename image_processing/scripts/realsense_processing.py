@@ -3,7 +3,7 @@ import rospy
 import cv2
 import pyrealsense2 as rs
 import numpy as np
-from image_processing.ball_color_processing import Detector
+from ball_color_processing import Detector
 from image_processing.msg import Point
 import time
 
