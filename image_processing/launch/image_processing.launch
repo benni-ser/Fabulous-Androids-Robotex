@@ -1,6 +1,0 @@
-<launch>
-<param name="use_sim_time"  value="false" />
-<node pkg="image_processing" type="realsense_processing.py" name="realsense_processing"
-output="screen"/>
-</launch>
-

@@ -3,27 +3,31 @@ import rospy
 import numpy as np
 from hardware.comport_mainboard import ComportMainboard
 import cv2
-from  game_logic.msg import Twist
+from  general.msg import Speeds
 
 class MainboardRunner():
     def __init__(self):
         rospy.init_node("connection_test", anonymous=True)
-        rospy.Subscriber("moving_vectors", Twist, twist_callback)
+        rospy.Subscriber("speeds", Speeds, self.speeds_callback)
 	self.board = ComportMainboard()
 
     def run(self):
         self.board.run()
+	rospy.spin()
 
+	'''
         r = rospy.Rate(30)
         while not rospy.is_shutdown():
             self.move_forward(10)
             r.sleep()
+	'''
 
         print("closing board")
         self.board.close()
 
-    def twist_callback(self, message):
-	print(str(message))
+    def speeds_callback(self, speeds):
+	print(str(speeds))
+	self.set_dir(speeds.left, speeds.right, speeds.back, speeds.thrower)
 
     def move_forward(self, speed):
         self.set_dir(speed, (-1) * speed, 0)

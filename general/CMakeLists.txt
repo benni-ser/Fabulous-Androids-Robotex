@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
         FILES
         Point.msg
+	Speeds.msg
 )
 
 generate_messages(

@@ -56,7 +56,7 @@ if __name__ == '__main__':
             res, mask, cx, cy, contour_area, w = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             cam_proc.pub.publish(Point(cx, cy, 0))
 
-            if i % 120 == 0: # for testing purposes
+            if i % 180 == 0: # for testing purposes
                 #test = np.array(cam_proc.hsv)
                 #l, w, v = test.shape
                 #print("Color of middle point: "+str(test[l/2, w/2, :]))
@@ -67,8 +67,9 @@ if __name__ == '__main__':
 
                 # export de
                 path = "/home/intel/catkin_ws/src/image_processing/"
-                filename = "res-" + str(time.time()).replace('.', '') + ".png"
-                #cv2.imwrite(path + filename, res)
+                filename = str(time.time()).replace('.', '') + ".png"
+                cv2.imwrite(path + "res-" + filename, res)
+		cv2.imwrite(path + "pic-" + filename, cam_proc.regular_image)
             i += 1
             rate.sleep()
     except rospy.ROSInterruptException:
