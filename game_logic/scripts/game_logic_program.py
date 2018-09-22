@@ -6,8 +6,10 @@ from general.msg import Point
 from general.msg import Speeds
 import cv2
 
-CENTER_LEFT_BORDER = 220
-CENTER_RIGHT_BORDER = 420
+CENTER = 320
+CENTER_WIDTH = 10
+CENTER_LEFT_BORDER = CENTER - CENTER_WIDTH
+CENTER_RIGHT_BORDER = CENTER + CENTER_WIDTH
 
 class Logic():
         def __init__(self):
