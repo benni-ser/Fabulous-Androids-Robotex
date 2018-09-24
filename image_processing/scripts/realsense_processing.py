@@ -52,27 +52,28 @@ if __name__ == '__main__':
         i = 0
         while not rospy.is_shutdown():
             cam_proc.get_frame()
-            ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_colour_file.txt", "BallDetector")
+            ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_colour_file.txt",
+                                     "BallDetector")
             res, mask, cx, cy, contour_area, w = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            if w > 4 and w < 90:
+            if 4 < w < 90:
                 cam_proc.pub.publish(Point(cx, cy, 0))
             else:
                 cam_proc.pub.publish(Point(-1, -1, 0))
 
-            if i % 180 == 0: # for testing purposes
-                #test = np.array(cam_proc.hsv)
-                #l, w, v = test.shape
-                #print("Color of middle point: "+str(test[l/2, w/2, :]))
-                #print("contour_area: "+str(contour_area))
-                print("w: "+str(w))
-                print("cx: "+str(cx))
-                print("cy: "+str(cy))
+            if i % 180 == 0:  # for testing purposes
+                # test = np.array(cam_proc.hsv)
+                # l, w, v = test.shape
+                # print("Color of middle point: "+str(test[l/2, w/2, :]))
+                print("contour_area: "+str(contour_area))
+                print("w: " + str(w))
+                print("cx: " + str(cx))
+                print("cy: " + str(cy))
 
                 # export de
                 path = "/home/intel/catkin_ws/src/image_processing/"
                 filename = str(time.time()).replace('.', '') + ".png"
                 cv2.imwrite(path + "res-" + filename, res)
-		cv2.imwrite(path + "pic-" + filename, cam_proc.regular_image)
+                cv2.imwrite(path + "pic-" + filename, cam_proc.regular_image)
             i += 1
             rate.sleep()
     except rospy.ROSInterruptException:
