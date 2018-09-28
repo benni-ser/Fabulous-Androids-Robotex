@@ -16,12 +16,12 @@ class MainboardRunner():
         self.board.run()
         rospy.spin()
 
-        '''
-        r = rospy.Rate(30)
+        '''r = rospy.Rate(30)
         while not rospy.is_shutdown():
-            self.move_forward(10)
-            r.sleep()
-	    '''
+            print("test")
+            #self.set_dir(0,0,0,100)
+            self.board.write("d:1200\n")
+            r.sleep()'''
 
         print("closing board")
         self.board.close()
