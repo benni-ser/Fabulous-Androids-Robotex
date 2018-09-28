@@ -44,36 +44,52 @@ class RealsenseProcessing():
         self.hsv = cv2.cvtColor(self.regular_image, cv2.COLOR_BGR2HSV)
 
 
+def check_ball(cx, cy, w, h, contour_area):
+    # checks if ball could actually be a ball (by checking for negative values and comparing with certain size-related thresholds)
+    if cx < 0 or cy < 0 or w < 0 or h < 0 or contour_area < 0:
+        return False
+    squareness = round((float(min(w,h)) / max(w,h)) * 100, 2) if w > 0 and h > 0 else 0.0
+    if squareness < 60.0 or contour_area > 3000:
+        return False
+    return True
+
+
 if __name__ == '__main__':
     try:
+        rate_num = 16
         cam_proc = RealsenseProcessing()
         cam_proc.run()
-        rate = rospy.Rate(60)
+        rate = rospy.Rate(rate_num)
         i = 0
         while not rospy.is_shutdown():
             cam_proc.get_frame()
             ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_colour_file.txt",
                                      "BallDetector")
-            res, mask, cx, cy, contour_area, w = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            if 4 < w < 90:
+            res, mask, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
+
+            if check_ball(cx, cy, w, h, contour_area):
                 cam_proc.pub.publish(Point(cx, cy, 0))
             else:
                 cam_proc.pub.publish(Point(-1, -1, 0))
 
-            if i % 180 == 0:  # for testing purposes
+            if i % (rate_num*3) == 0:  # for testing purposes
                 # test = np.array(cam_proc.hsv)
                 # l, w, v = test.shape
                 # print("Color of middle point: "+str(test[l/2, w/2, :]))
+                print("Ball{} detected!".format("" if check_ball(cx, cy, w, h, contour_area) else " NOT"))
                 print("contour_area: "+str(contour_area))
-                print("w: " + str(w))
+                print("w:{:3}\th:{:3}\tw+h:{}".format(str(w), str(h), str(w+h)))
+                squareness = round((float(min(w,h)) / max(w,h)) * 100, 2) if w > 0 and h > 0 else 0.0
+                print("\"Squareness\" (in percent): {}".format(str(squareness)))
                 print("cx: " + str(cx))
                 print("cy: " + str(cy))
+                print("______________________")
 
-                # export de
-                path = "/home/intel/catkin_ws/src/image_processing/"
+                # export
+                path = "/home/intel/pics"
                 filename = str(time.time()).replace('.', '') + ".png"
-                cv2.imwrite(path + "res-" + filename, res)
-                cv2.imwrite(path + "pic-" + filename, cam_proc.regular_image)
+                cv2.imwrite("{}/{}-res_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), res)
+                cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), cam_proc.regular_image)
             i += 1
             rate.sleep()
     except rospy.ROSInterruptException:
