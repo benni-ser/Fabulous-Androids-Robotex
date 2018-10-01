@@ -7,7 +7,7 @@ from general.msg import Speeds
 import cv2
 import math
 
-CENTER_WIDTH = 25
+CENTER_WIDTH = 30
 CENTER_LEFT_BORDER = 320 - CENTER_WIDTH
 CENTER_RIGHT_BORDER = 320 + CENTER_WIDTH
 
@@ -82,11 +82,19 @@ def calc_linear_velocity(robotSpeed, robotDirectionAngle, wheelAngle):
 
 def drive_to_ball(l):
     if l.state == LEFT_OF_CENTER:
-        l.speed_pub.publish(rotate_left())
-
+        #l.speed_pub.publish(rotate_left())
+	w1speed = calc_linear_velocity(ROBOT_SPEED, 180, W1ANGLE)
+        w2speed = calc_linear_velocity(ROBOT_SPEED, 180, W2ANGLE)
+        w3speed = calc_linear_velocity(ROBOT_SPEED, 180, W3ANGLE)
+        l.speed_pub.publish(Speeds(w1speed, w2speed, w3speed, 0))
+        print("Moving left: "+str(w1speed)+":"+str(w2speed)+":"+str(w3speed))
     elif l.state == RIGHT_OF_CENTER:
-        l.speed_pub.publish(rotate_right())
-
+        #l.speed_pub.publish(rotate_right())
+	w1speed = calc_linear_velocity(ROBOT_SPEED, 0, W1ANGLE)
+        w2speed = calc_linear_velocity(ROBOT_SPEED, 0, W2ANGLE)
+        w3speed = calc_linear_velocity(ROBOT_SPEED, 0, W3ANGLE)
+        l.speed_pub.publish(Speeds(w1speed, w2speed, w3speed, 0))
+        print("Moving right: "+str(w1speed)+":"+str(w2speed)+":"+str(w3speed))
     if l.state == CENTERED:
         #l.speed_pub.publish(Speeds(0, 0, 0, 10))
 
@@ -95,7 +103,7 @@ def drive_to_ball(l):
         w2speed = calc_linear_velocity(ROBOT_SPEED, 90, W2ANGLE)
         w3speed = calc_linear_velocity(ROBOT_SPEED, 90, W3ANGLE)
         l.speed_pub.publish(Speeds(w1speed, w2speed, w3speed, 0))
-        print("Speeds: "+str(w1speed)+":"+str(w2speed)+":"+str(w3speed))
+        print("Moving forward: "+str(w1speed)+":"+str(w2speed)+":"+str(w3speed))
 
 def drive_to_ball_angle(l):
     # drives to the ball while keeping it at the edge of the camera
@@ -125,7 +133,7 @@ if __name__ == '__main__':
     try:
         l = Logic()
         # rospy.spin()
-        rate = rospy.Rate(16)
+        rate = rospy.Rate(10)
         while not rospy.is_shutdown():
             if l.state == NOT_DETECTED:
                 l.speed_pub.publish(rotate_right())

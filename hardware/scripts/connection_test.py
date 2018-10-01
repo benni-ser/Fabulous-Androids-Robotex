@@ -19,8 +19,8 @@ class MainboardRunner():
         '''r = rospy.Rate(30)
         while not rospy.is_shutdown():
             print("test")
-            #self.set_dir(0,0,0,100)
-            self.board.write("d:1200\n")
+            self.set_dir(10,10,10,0)
+            #self.board.write("d:1200\n")
             r.sleep()'''
 
         print("closing board")
@@ -51,7 +51,7 @@ class MainboardRunner():
 
     def get_dir(self):
         self.board.write('gs')
-        return self.board.readline()
+        return self.board.read_line()
 
 
 if __name__ == '__main__':
