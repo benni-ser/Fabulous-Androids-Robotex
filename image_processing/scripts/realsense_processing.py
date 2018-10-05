@@ -56,7 +56,7 @@ def check_ball(cx, cy, w, h, contour_area):
 
 if __name__ == '__main__':
     try:
-        rate_num = 16
+        rate_num = 4
         cam_proc = RealsenseProcessing()
         cam_proc.run()
         rate = rospy.Rate(rate_num)
@@ -88,8 +88,8 @@ if __name__ == '__main__':
                 # export
                 path = "/home/intel/pics"
                 filename = str(time.time()).replace('.', '') + ".png"
-                cv2.imwrite("{}/{}-res_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), res)
-                cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), cam_proc.regular_image)
+                #cv2.imwrite("{}/{}-res_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), res)
+                #cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), cam_proc.regular_image)
             i += 1
             rate.sleep()
     except rospy.ROSInterruptException:
