@@ -35,7 +35,7 @@ class Logic():
         rospy.Subscriber("ball_coordinates", Point, self.ball_callback)
         self.speed_pub = rospy.Publisher("speeds", Speeds, queue_size=10)
     #Task1
-    '''def ball_callback(self, point):
+    def ball_callback(self, point):
         X = point.x
         Y = point.y
         print(str(point))
@@ -54,9 +54,9 @@ class Logic():
             		print(RIGHT_OF_CENTER)
             		self.state = RIGHT_OF_CENTER
         	else:  # x = -1
-            		self.state = NOT_DETECTED'''
+            		self.state = NOT_DETECTED
     #Task2
-    def ball_callback(self,point):
+    '''def ball_callback(self,point):
 	global X
 	X = point.x
         global Y
@@ -85,7 +85,7 @@ class Logic():
                                 print(STOP)
                                 self.state = STOP
                 else:  # x = -1
-                        self.state = NOT_DETECTED
+                        self.state = NOT_DETECTED'''
 
 
 
@@ -183,15 +183,15 @@ if __name__ == '__main__':
 			x = 0
             elif l.state != STOP:
 		#Task1
-                #drive_to_ball(l)
+                drive_to_ball(l)
 		#Task2
-		drive_to_ball_angle(l)
+		#drive_to_ball_angle(l)
             else:
 		if r < 3:
 			#Task1
-			#l.speed_pub.publish(move_forward())
-			#Task2
 			l.speed_pub.publish(move_forward())
+			#Task2
+			#l.speed_pub.publish(move_forward())
 			r = r + 1
 			rate.sleep()
 		l.speed_pub.publish(Speeds(0,0,0,0))
