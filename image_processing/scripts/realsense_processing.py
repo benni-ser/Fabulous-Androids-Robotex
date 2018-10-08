@@ -5,6 +5,7 @@ import pyrealsense2 as rs
 import numpy as np
 from image_processing.object_detector import Detector
 from general.msg import Point
+from general.msg import BasketPoint
 import time
 
 
@@ -12,7 +13,8 @@ class RealsenseProcessing():
     def __init__(self):
         rospy.init_node("realsense_processing", anonymous=True)
         self.pub = rospy.Publisher('ball_coordinates', Point, queue_size=10)
-        self.pipeline = None
+        self.pub_basket = rospy.Publisher('basket_coordinates', BasketPoint, queue_size=10)
+	self.pipeline = None
         self.align = None
         self.depth_image = None
         self.regular_image = None
@@ -71,6 +73,9 @@ if __name__ == '__main__':
                 cam_proc.pub.publish(Point(cx, cy, 0))
             else:
                 cam_proc.pub.publish(Point(-1, -1, 0))
+	    basket_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/basket_colour_file.txt", "BasketDetector")
+	    basket_res, basket_mask, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
+	    cam_proc.pub_basket.publish(BasketPoint(basket_cx, basket_cy, 0))
 
             if i % (rate_num*3) == 0:  # for testing purposes
                 # test = np.array(cam_proc.hsv)

@@ -4,22 +4,36 @@ import numpy as np
 from hardware.comport_mainboard import ComportMainboard
 from general.msg import Point
 from general.msg import Speeds
+from general.msg import BasketPoint
 import cv2
 import math
 
-CENTER_WIDTH_LEFT = 30
-CENTER_WIDTH_RIGHT = 40
+CENTER_WIDTH_LEFT = 20
+CENTER_WIDTH_RIGHT = 50
 CENTER_LEFT_BORDER = 350 - CENTER_WIDTH_LEFT
 CENTER_RIGHT_BORDER = 350 + CENTER_WIDTH_RIGHT
+
+BASKET_WIDTH_LEFT = 30
+BASKET_WIDTH_RIGHT = 40
+BASKET_LEFT_BORDER = 350 - BASKET_WIDTH_LEFT
+BASKET_RIGHT_BORDER = 350 + BASKET_WIDTH_RIGHT
 
 CENTERED = "Ball is centered"
 LEFT_OF_CENTER = "Ball is left of center"
 RIGHT_OF_CENTER = "Ball is right of center"
 NOT_DETECTED = "No ball detected"
 STOP = "Robot must stop"
+FINISH = "Ball process finished"
+BASKET_NOT_DETECTED = "Basket not detected"
+BASKET_LEFT_OF_CENTER = "Basket left of center"
+BASKET_RIGHT_OF_CENTER = "Basket right of center"
+BASKET_CENTERED = "Basket centered"
 
 X = -1
 Y = -1
+
+BASKET_X = -1
+BASKET_Y = -1
 
 W1ANGLE = 60
 W2ANGLE = 300
@@ -31,15 +45,17 @@ ROBOT_SPEED = 8
 class Logic():
     def __init__(self):
         self.state = NOT_DETECTED
+	self.b_state = BASKET_NOT_DETECTED
         rospy.init_node("game_logic", anonymous=True)
         rospy.Subscriber("ball_coordinates", Point, self.ball_callback)
+	rospy.Subscriber("basket_coordinates", BasketPoint, self.basket_callback)
         self.speed_pub = rospy.Publisher("speeds", Speeds, queue_size=10)
     #Task1
     def ball_callback(self, point):
         X = point.x
         Y = point.y
-        print(str(point))
-	if self.state != STOP:
+        print("Ball point:" + str(point))
+	if self.state != STOP and self.state != FINISH:
         	if CENTER_LEFT_BORDER <= point.x <= CENTER_RIGHT_BORDER:  # point should be in middle third
             		if point.y < 460:
 	    			print(CENTERED)
@@ -87,6 +103,21 @@ class Logic():
                 else:  # x = -1
                         self.state = NOT_DETECTED'''
 
+    def basket_callback(self, basketpoint):
+		global BASKET_X
+		BASKET_X = basketpoint.x
+        	global BASKET_Y
+		BASKET_Y = basketpoint.y
+        	print("Basket point: " + str(basketpoint))
+        	if self.state == FINISH or self.b_state == BASKET_NOT_DETECTED or self.b_state == BASKET_LEFT_OF_CENTER or self.b_state == BASKET_RIGHT_OF_CENTER:
+                	if BASKET_LEFT_BORDER <= basketpoint.x <= BASKET_RIGHT_BORDER:  # point should be in middle third
+                        	self.b_state = BASKET_CENTERED
+                	elif 0 <= basketpoint.x < BASKET_LEFT_BORDER:
+                        	self.b_state = BASKET_LEFT_OF_CENTER
+                	elif basketpoint.x > BASKET_RIGHT_BORDER:
+                        	self.b_state = BASKET_RIGHT_OF_CENTER
+                	else:  # x = -1
+                        	self.b_state = BASKET_NOT_DETECTED
 
 
 def move_forward(speed=ROBOT_SPEED):
@@ -181,12 +212,12 @@ if __name__ == '__main__':
 		else:
 			l.speed_pub.publish(rotate_right(1))
 			x = 0
-            elif l.state != STOP:
+            elif l.state != STOP and l.state != FINISH:
 		#Task1
                 drive_to_ball(l)
 		#Task2
 		#drive_to_ball_angle(l)
-            else:
+            elif l.state == STOP:
 		if r < 3:
 			#Task1
 			l.speed_pub.publish(move_forward())
@@ -194,7 +225,22 @@ if __name__ == '__main__':
 			#l.speed_pub.publish(move_forward())
 			r = r + 1
 			rate.sleep()
+		else:
+			l.state = FINISH
 		l.speed_pub.publish(Speeds(0,0,0,0))
+            elif l.state == FINISH:
+		if l.b_state == BASKET_LEFT_OF_CENTER:
+			print(BASKET_LEFT_OF_CENTER)
+			l.speed_pub.publish(circle(-5))
+		elif l.b_state == BASKET_RIGHT_OF_CENTER:
+			print(BASKET_RIGHT_OF_CENTER)
+			l.speed_pub.publish(circle(5))
+		elif l.b_state == BASKET_CENTERED:
+			print(BASKET_CENTERED)
+			l.speed_pub.publish(Speeds(0,0,0,0))
+		else:
+			print(BASKET_NOT_DETECTED)
+			l.speed_pub.publish(rotate_right())
 	    rate.sleep()
     except rospy.ROSInterruptException:
         pass

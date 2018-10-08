@@ -17,6 +17,7 @@ add_message_files(
         FILES
         Point.msg
 	Speeds.msg
+	BasketPoint.msg
 )
 
 generate_messages(
