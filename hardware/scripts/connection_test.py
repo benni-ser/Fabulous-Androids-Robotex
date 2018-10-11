@@ -28,7 +28,7 @@ class MainboardRunner():
 
     def speeds_callback(self, speeds):
         print(str(speeds))
-        self.set_dir(speeds.left, speeds.right, speeds.back, speeds.thrower)
+        self.set_dir(speeds.left, speeds.right, speeds.back, "d:"+str(speeds.thrower))
 
     def move_forward(self, speed):
         self.set_dir(speed, (-1) * speed, 0)
@@ -48,6 +48,7 @@ class MainboardRunner():
 
     def set_dir(self, front_left, front_right, back, thrower=0):
         self.board.write("sd:{}:{}:{}:{}".format(front_left, front_right, back, thrower))
+	self.board.write(thrower)
 
     def get_dir(self):
         self.board.write('gs')

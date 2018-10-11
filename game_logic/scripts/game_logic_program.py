@@ -28,6 +28,7 @@ BASKET_NOT_DETECTED = "Basket not detected"
 BASKET_LEFT_OF_CENTER = "Basket left of center"
 BASKET_RIGHT_OF_CENTER = "Basket right of center"
 BASKET_CENTERED = "Basket centered"
+THROW_BALL = "Throw ball"
 
 X = -1
 Y = -1
@@ -201,9 +202,12 @@ if __name__ == '__main__':
     try:
         l = Logic()
         #rospy.spin()
-        rate = rospy.Rate(2)
+	#Worked find ball and basket
+        #rate = rospy.Rate(2)
+	rate = rospy.Rate(8)
 	x = 0
 	r = 0
+	l.state = THROW_BALL
         while not rospy.is_shutdown():
             if l.state == NOT_DETECTED:
 		if x == 0:
@@ -212,13 +216,13 @@ if __name__ == '__main__':
 		else:
 			l.speed_pub.publish(rotate_right(1))
 			x = 0
-            elif l.state != STOP and l.state != FINISH:
+            elif l.state != STOP and l.state != FINISH and l.state != THROW_BALL:
 		#Task1
                 drive_to_ball(l)
 		#Task2
 		#drive_to_ball_angle(l)
             elif l.state == STOP:
-		if r < 3:
+		if r < 1:
 			#Task1
 			l.speed_pub.publish(move_forward())
 			#Task2
@@ -238,9 +242,12 @@ if __name__ == '__main__':
 		elif l.b_state == BASKET_CENTERED:
 			print(BASKET_CENTERED)
 			l.speed_pub.publish(Speeds(0,0,0,0))
+			l.state = THROW_BALL
 		else:
 			print(BASKET_NOT_DETECTED)
 			l.speed_pub.publish(rotate_right())
+	    elif l.state == THROW_BALL:
+		l.speed_pub.publish(Speeds(10,-10,0,1200))
 	    rate.sleep()
     except rospy.ROSInterruptException:
         pass
