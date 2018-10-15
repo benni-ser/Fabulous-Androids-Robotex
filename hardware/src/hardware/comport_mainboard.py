@@ -40,6 +40,13 @@ class ComportMainboard(threading.Thread):
             except:
                 print('mainboard: err write ' + comm)
 
+    def read(self):
+	command = ""
+	c = self.connection.read()
+	while c != '\n':
+		command += c
+		c = self.connection.read()
+
     def read_line(self):
         if self.connection_opened:
             return self.connection.readline()

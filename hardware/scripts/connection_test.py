@@ -19,8 +19,8 @@ class MainboardRunner():
         '''r = rospy.Rate(30)
         while not rospy.is_shutdown():
             print("test")
-            self.set_dir(10,10,10,0)
-            #self.board.write("d:1200\n")
+            self.set_dir(0,0,0,2000)
+	    #self.board.read()
             r.sleep()'''
 
         print("closing board")
@@ -28,7 +28,7 @@ class MainboardRunner():
 
     def speeds_callback(self, speeds):
         print(str(speeds))
-        self.set_dir(speeds.left, speeds.right, speeds.back, "d:"+str(speeds.thrower))
+        self.set_dir(speeds.left, speeds.right, speeds.back, speeds.thrower)
 
     def move_forward(self, speed):
         self.set_dir(speed, (-1) * speed, 0)
@@ -48,7 +48,11 @@ class MainboardRunner():
 
     def set_dir(self, front_left, front_right, back, thrower=0):
         self.board.write("sd:{}:{}:{}:{}".format(front_left, front_right, back, thrower))
-	self.board.write(thrower)
+	#self.board.read()
+	if thrower > 0:
+		self.board.write("d:{}".format(thrower))
+		#self.board.read()
+	self.board.read()
 
     def get_dir(self):
         self.board.write('gs')

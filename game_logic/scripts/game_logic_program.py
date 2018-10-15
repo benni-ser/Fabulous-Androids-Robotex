@@ -9,14 +9,14 @@ import cv2
 import math
 
 CENTER_WIDTH_LEFT = 20
-CENTER_WIDTH_RIGHT = 50
-CENTER_LEFT_BORDER = 350 - CENTER_WIDTH_LEFT
-CENTER_RIGHT_BORDER = 350 + CENTER_WIDTH_RIGHT
+CENTER_WIDTH_RIGHT = 20
+CENTER_LEFT_BORDER = 360 - CENTER_WIDTH_LEFT
+CENTER_RIGHT_BORDER = 360 + CENTER_WIDTH_RIGHT
 
-BASKET_WIDTH_LEFT = 30
+BASKET_WIDTH_LEFT = 40
 BASKET_WIDTH_RIGHT = 40
-BASKET_LEFT_BORDER = 350 - BASKET_WIDTH_LEFT
-BASKET_RIGHT_BORDER = 350 + BASKET_WIDTH_RIGHT
+BASKET_LEFT_BORDER = 360 - BASKET_WIDTH_LEFT
+BASKET_RIGHT_BORDER = 360 + BASKET_WIDTH_RIGHT
 
 CENTERED = "Ball is centered"
 LEFT_OF_CENTER = "Ball is left of center"
@@ -55,14 +55,14 @@ class Logic():
     def ball_callback(self, point):
         X = point.x
         Y = point.y
-        print("Ball point:" + str(point))
-	if self.state != STOP and self.state != FINISH:
+        print("Ball point: \n" + str(point)+ '\n')
+	if self.state != STOP and self.state != FINISH and self.state != THROW_BALL:
         	if CENTER_LEFT_BORDER <= point.x <= CENTER_RIGHT_BORDER:  # point should be in middle third
             		if point.y < 460:
-	    			print(CENTERED)
+	    			print(CENTERED + '\n')
             			self.state = CENTERED
 		    	else:
-				print(STOP)
+				print(STOP + '\n')
 				self.state = STOP
         	elif 0 <= point.x < CENTER_LEFT_BORDER:
             		print(LEFT_OF_CENTER)
@@ -109,7 +109,7 @@ class Logic():
 		BASKET_X = basketpoint.x
         	global BASKET_Y
 		BASKET_Y = basketpoint.y
-        	print("Basket point: " + str(basketpoint))
+        	print("Basket point:\n" + str(basketpoint)+'\n')
         	if self.state == FINISH or self.b_state == BASKET_NOT_DETECTED or self.b_state == BASKET_LEFT_OF_CENTER or self.b_state == BASKET_RIGHT_OF_CENTER:
                 	if BASKET_LEFT_BORDER <= basketpoint.x <= BASKET_RIGHT_BORDER:  # point should be in middle third
                         	self.b_state = BASKET_CENTERED
@@ -203,12 +203,14 @@ if __name__ == '__main__':
         l = Logic()
         #rospy.spin()
 	#Worked find ball and basket
-        #rate = rospy.Rate(2)
-	rate = rospy.Rate(8)
+        rate = rospy.Rate(2)
+	#rate = rospy.Rate(8)
 	x = 0
 	r = 0
-	l.state = THROW_BALL
+	#l.state = THROW_BALL
         while not rospy.is_shutdown():
+	    print("Main state: "+l.state+'\n')
+	    print("Basket state: "+l.b_state+'\n')
             if l.state == NOT_DETECTED:
 		if x == 0:
 			l.speed_pub.publish(move_forward(20))
@@ -247,7 +249,7 @@ if __name__ == '__main__':
 			print(BASKET_NOT_DETECTED)
 			l.speed_pub.publish(rotate_right())
 	    elif l.state == THROW_BALL:
-		l.speed_pub.publish(Speeds(10,-10,0,1200))
+		l.speed_pub.publish(Speeds(10,-10,0,2000))
 	    rate.sleep()
     except rospy.ROSInterruptException:
         pass
