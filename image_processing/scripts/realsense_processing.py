@@ -5,16 +5,15 @@ import pyrealsense2 as rs
 import numpy as np
 from image_processing.object_detector import Detector
 from general.msg import Point
-from general.msg import BasketPoint
 import time
 
 
 class RealsenseProcessing():
     def __init__(self):
         rospy.init_node("realsense_processing", anonymous=True)
-        self.pub = rospy.Publisher('ball_coordinates', Point, queue_size=10)
-        self.pub_basket = rospy.Publisher('basket_coordinates', BasketPoint, queue_size=10)
-	self.pipeline = None
+        self.pub_ball = rospy.Publisher('ball_coordinates', Point, queue_size=10)
+        self.pub_basket = rospy.Publisher('basket_coordinates', Point, queue_size=10)
+        self.pipeline = None
         self.align = None
         self.depth_image = None
         self.regular_image = None
@@ -47,10 +46,11 @@ class RealsenseProcessing():
 
 
 def check_ball(cx, cy, w, h, contour_area):
-    # checks if ball could actually be a ball (by checking for negative values and comparing with certain size-related thresholds)
+    # checks if ball could actually be a ball
+    # (by checking for negative values and comparing with certain size-related thresholds)
     if cx < 0 or cy < 0 or w < 0 or h < 0 or contour_area < 0:
         return False
-    squareness = round((float(min(w,h)) / max(w,h)) * 100, 2) if w > 0 and h > 0 else 0.0
+    squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
     if squareness < 60.0 or contour_area > 3000:
         return False
     return True
@@ -65,26 +65,22 @@ if __name__ == '__main__':
         i = 0
         while not rospy.is_shutdown():
             cam_proc.get_frame()
-            ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_colour_file.txt",
-                                     "BallDetector")
+            ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_colour_file.txt", "BallDetector")
             res, mask, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
+            cam_proc.pub_ball.publish(Point(cx, cy, 0) if check_ball(cx, cy, w, h, contour_area) else Point(-1, -1, 0))
 
-            if check_ball(cx, cy, w, h, contour_area):
-                cam_proc.pub.publish(Point(cx, cy, 0))
-            else:
-                cam_proc.pub.publish(Point(-1, -1, 0))
-	    basket_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/basket_colour_file.txt", "BasketDetector")
-	    basket_res, basket_mask, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-	    cam_proc.pub_basket.publish(BasketPoint(basket_cx, basket_cy, 0))
+            basket_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/basket_colour_file.txt", "BasketDetector")
+            basket_res, basket_mask, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
+            cam_proc.pub_basket.publish(Point(basket_cx, basket_cy, 0))
 
-            if i % (rate_num*3) == 0:  # for testing purposes
+            if i % (rate_num * 3) == 0:  # for testing purposes
                 # test = np.array(cam_proc.hsv)
                 # l, w, v = test.shape
                 # print("Color of middle point: "+str(test[l/2, w/2, :]))
                 print("Ball{} detected!".format("" if check_ball(cx, cy, w, h, contour_area) else " NOT"))
-                print("contour_area: "+str(contour_area))
-                print("w:{:3}\th:{:3}\tw+h:{}".format(str(w), str(h), str(w+h)))
-                squareness = round((float(min(w,h)) / max(w,h)) * 100, 2) if w > 0 and h > 0 else 0.0
+                print("contour_area: " + str(contour_area))
+                print("w:{:3}\th:{:3}\tw+h:{}".format(str(w), str(h), str(w + h)))
+                squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
                 print("\"Squareness\" (in percent): {}".format(str(squareness)))
                 print("cx: " + str(cx))
                 print("cy: " + str(cy))
@@ -93,8 +89,8 @@ if __name__ == '__main__':
                 # export
                 path = "/home/intel/pics"
                 filename = str(time.time()).replace('.', '') + ".png"
-                #cv2.imwrite("{}/{}-res_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), res)
-                #cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), cam_proc.regular_image)
+                # cv2.imwrite("{}/{}-res_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), res)
+                # cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), cam_proc.regular_image)
             i += 1
             rate.sleep()
     except rospy.ROSInterruptException:

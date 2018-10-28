@@ -1,62 +1,60 @@
 #! /usr/bin/env python
 import rospy
-import numpy as np
 from hardware.comport_mainboard import ComportMainboard
-import cv2
 from general.msg import Speeds
 
+FIELD_ID = "A"
+ROBOT_ID = "A"
 
-class MainboardRunner():
+
+class MainboardRunner:
     def __init__(self):
         rospy.init_node("connection_test", anonymous=True)
         rospy.Subscriber("speeds", Speeds, self.speeds_callback)
         self.board = ComportMainboard()
+        self.running = True
 
     def run(self):
         self.board.run()
-        rospy.spin()
+        # rospy.spin()
 
-        '''r = rospy.Rate(30)
+        r = rospy.Rate(50)
         while not rospy.is_shutdown():
-            print("test")
-            self.set_dir(0,0,0,2000)
-	    #self.board.read()
-            r.sleep()'''
+            self.check_for_referee_commands()
+            r.sleep()
 
         print("closing board")
         self.board.close()
 
     def speeds_callback(self, speeds):
-        print(str(speeds))
-        self.set_dir(speeds.left, speeds.right, speeds.back, speeds.thrower)
-
-    def move_forward(self, speed):
-        self.set_dir(speed, (-1) * speed, 0)
-
-    def move_backwards(self, speed):
-        self.set_dir((-1) * speed, speed, 0)
-
-    def rotate(self, speed):
-        # rotates around its own axis
-        # speed: positive -> turn right; negative -> turn left
-        self.set_dir(speed, speed, speed)
-
-    def circle(self, speed):
-        # rotates around axis in front of the robot
-        # speed: positive -> move left; negative -> move right
-        self.set_dir(0, 0, speed)
+        if self.running:
+            print(str(speeds))
+            self.set_dir(speeds.left, speeds.right, speeds.back, speeds.thrower)
 
     def set_dir(self, front_left, front_right, back, thrower=0):
-        self.board.write("sd:{}:{}:{}:{}".format(front_left, front_right, back, thrower))
-	#self.board.read()
-	if thrower > 0:
-		self.board.write("d:{}".format(thrower))
-		#self.board.read()
-	self.board.read()
+        self.board.write("sd:{}:{}:{}:0".format(front_left, front_right, back))
+        if thrower > 0:
+            self.board.write("d:{}".format(thrower))
+        return self.board.read_line()
 
     def get_dir(self):
         self.board.write('gs')
         return self.board.read_line()
+
+    def check_for_referee_commands(self):
+        line = self.board.read_line()
+        print("Read line: " + line)  # for debugging
+        if line and line.startswith("<ref:a") and line[6] == FIELD_ID and (line[7] == ROBOT_ID or line[7] == "X"):
+            print("REFEREE COMMAND FOUND: " + line)  # for debugging
+            if line.startswith("START", 8):
+                self.running = True
+            elif line.startswith("STOP", 8):
+                self.running = False
+                self.set_dir(0, 0, 0)
+            elif not line.startswith("PING", 8):
+                return
+            if line[7] == ROBOT_ID:  # ACK should only be sent if robot was messaged individually
+                self.board.write("rf:a{}{}ACK-----".format(FIELD_ID, ROBOT_ID))
 
 
 if __name__ == '__main__':

@@ -26,7 +26,7 @@ class ComportMainboard(threading.Thread):
                     self.connection_opened = self.connection.isOpen()
                     time.sleep(0.5)
                 self.connection.flush()
-                print "mainboard: Port opened successfully"
+                print("mainboard: Port opened successfully")
             except Exception as e:
                 print(e)
                 continue
@@ -41,14 +41,15 @@ class ComportMainboard(threading.Thread):
                 print('mainboard: err write ' + comm)
 
     def read(self):
-	command = ""
-	c = self.connection.read()
-	while c != '\n':
-		command += c
-		c = self.connection.read()
+        command = ""
+        c = self.connection.read()
+        while c != '\n':
+            command += c
+            c = self.connection.read()
 
     def read_line(self):
         if self.connection_opened:
+            self.connection.flush()  # TODO test if this works
             return self.connection.readline()
 
     def close(self):
