@@ -3,6 +3,7 @@ import rospy
 from hardware.comport_mainboard import ComportMainboard
 from general.msg import Speeds
 
+RATE = 50
 FIELD_ID = "A"
 ROBOT_ID = "A"
 
@@ -18,7 +19,7 @@ class MainboardRunner:
         self.board.run()
         # rospy.spin()
 
-        r = rospy.Rate(50)
+        r = rospy.Rate(RATE)
         while not rospy.is_shutdown():
             self.check_for_referee_commands()
             r.sleep()
@@ -43,9 +44,8 @@ class MainboardRunner:
 
     def check_for_referee_commands(self):
         line = self.board.read_line()
-        print("Read line: " + line)  # for debugging
         if line and line.startswith("<ref:a") and line[6] == FIELD_ID and (line[7] == ROBOT_ID or line[7] == "X"):
-            print("REFEREE COMMAND FOUND: " + line)  # for debugging
+            print("REFEREE COMMAND RECEIVED: " + line)
             if line.startswith("START", 8):
                 self.running = True
             elif line.startswith("STOP", 8):

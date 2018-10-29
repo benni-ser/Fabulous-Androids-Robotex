@@ -7,6 +7,11 @@ from image_processing.object_detector import Detector
 from general.msg import Point
 import time
 
+# constants, configs etc.
+RATE = 4
+SAVE_BALL_IMGS = False
+SAVE_BASKET_IMGS = False
+
 
 class RealsenseProcessing():
     def __init__(self):
@@ -56,12 +61,22 @@ def check_ball(cx, cy, w, h, contour_area):
     return True
 
 
+def save_images():
+    if SAVE_BALL_IMGS or SAVE_BASKET_IMGS:
+        path = "/home/intel/pics"
+        filename = str(time.time()).replace('.', '') + ".png"
+        cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), cam_proc.regular_image)
+        if SAVE_BALL_IMGS:
+            cv2.imwrite("{}/{}-ball_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), res)
+        if SAVE_BASKET_IMGS:
+            cv2.imwrite("{}/{}-basket_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), res)
+
+
 if __name__ == '__main__':
     try:
-        rate_num = 4
         cam_proc = RealsenseProcessing()
         cam_proc.run()
-        rate = rospy.Rate(rate_num)
+        rate = rospy.Rate(RATE)
         i = 0
         while not rospy.is_shutdown():
             cam_proc.get_frame()
@@ -73,7 +88,7 @@ if __name__ == '__main__':
             basket_res, basket_mask, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             cam_proc.pub_basket.publish(Point(basket_cx, basket_cy, 0))
 
-            if i % (rate_num * 3) == 0:  # for testing purposes
+            if i % (RATE * 3) == 0:  # for testing purposes
                 # test = np.array(cam_proc.hsv)
                 # l, w, v = test.shape
                 # print("Color of middle point: "+str(test[l/2, w/2, :]))
@@ -85,12 +100,7 @@ if __name__ == '__main__':
                 print("cx: " + str(cx))
                 print("cy: " + str(cy))
                 print("______________________")
-
-                # export
-                path = "/home/intel/pics"
-                filename = str(time.time()).replace('.', '') + ".png"
-                # cv2.imwrite("{}/{}-res_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), res)
-                # cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), cam_proc.regular_image)
+                save_images()
             i += 1
             rate.sleep()
     except rospy.ROSInterruptException:

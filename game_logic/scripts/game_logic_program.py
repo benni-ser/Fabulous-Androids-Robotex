@@ -1,12 +1,11 @@
 #! /usr/bin/env python
 import rospy
-import numpy as np
-from hardware.comport_mainboard import ComportMainboard
 from general.msg import Point
 from general.msg import Speeds
-from general.msg import BasketPoint
-import cv2
 import math
+
+RATE = 2
+ROBOT_SPEED = 8  # general speed used for the robot
 
 CENTER_WIDTH_LEFT = 20
 CENTER_WIDTH_RIGHT = 20
@@ -18,110 +17,73 @@ BASKET_WIDTH_RIGHT = 40
 BASKET_LEFT_BORDER = 350 - BASKET_WIDTH_LEFT
 BASKET_RIGHT_BORDER = 350 + BASKET_WIDTH_RIGHT
 
-CENTERED = "Ball is centered"
-LEFT_OF_CENTER = "Ball is left of center"
-RIGHT_OF_CENTER = "Ball is right of center"
-NOT_DETECTED = "No ball detected"
+NOT_DETECTED = "not detected"
+CENTERED = "centered"
+LEFT_OF_CENTER = "left of center"
+RIGHT_OF_CENTER = "right of center"
 STOP = "Robot must stop"
 FINISH = "Ball process finished"
-BASKET_NOT_DETECTED = "Basket not detected"
-BASKET_LEFT_OF_CENTER = "Basket left of center"
-BASKET_RIGHT_OF_CENTER = "Basket right of center"
-BASKET_CENTERED = "Basket centered"
 THROW_BALL = "Throw ball"
-
-X = -1
-Y = -1
-
-BASKET_X = -1
-BASKET_Y = -1
 
 W1ANGLE = 60
 W2ANGLE = 300
 W3ANGLE = 180
 CAM_FOV = 69.4  # field of view of camera (in degrees)
 
-ROBOT_SPEED = 8
+ball_x = -1
+ball_y = -1
+basket_x = -1
+basket_y = -1
 
 
 class Logic:
     def __init__(self):
-        self.state = NOT_DETECTED
-        self.b_state = BASKET_NOT_DETECTED
+        self.ball_state = NOT_DETECTED
+        self.basket_state = NOT_DETECTED
         rospy.init_node("game_logic", anonymous=True)
         rospy.Subscriber("ball_coordinates", Point, self.ball_callback)
-        rospy.Subscriber("basket_coordinates", BasketPoint, self.basket_callback)
+        rospy.Subscriber("basket_coordinates", Point, self.basket_callback)
         self.speed_pub = rospy.Publisher("speeds", Speeds, queue_size=10)
 
     # Task1
     def ball_callback(self, point):
-        X = point.x
-        Y = point.y
+        global ball_x
+        ball_x = point.x
+        global ball_y
+        ball_y = point.y
         print("Ball point: \n" + str(point) + '\n')
-        if self.state != STOP and self.state != FINISH and self.state != THROW_BALL:
+        if self.ball_state != STOP and self.ball_state != FINISH and self.ball_state != THROW_BALL:
             if CENTER_LEFT_BORDER <= point.x <= CENTER_RIGHT_BORDER:  # point should be in middle third
                 if point.y < 460:
                     print(CENTERED + '\n')
-                    self.state = CENTERED
+                    self.ball_state = CENTERED
                 else:
                     print(STOP + '\n')
-                    self.state = STOP
+                    self.ball_state = STOP
             elif 0 <= point.x < CENTER_LEFT_BORDER:
                 print(LEFT_OF_CENTER)
-                self.state = LEFT_OF_CENTER
+                self.ball_state = LEFT_OF_CENTER
             elif point.x > CENTER_RIGHT_BORDER:
                 print(RIGHT_OF_CENTER)
-                self.state = RIGHT_OF_CENTER
+                self.ball_state = RIGHT_OF_CENTER
             else:  # x = -1
-                self.state = NOT_DETECTED
-
-    # Task2
-    '''def ball_callback(self,point):
-        global X
-        X = point.x
-        global Y
-        Y = point.y
-        print(str(point))
-        if self.state != STOP:
-                if CENTER_LEFT_BORDER <= point.x <= CENTER_RIGHT_BORDER:  # point should be in middle third
-                        if point.y < 460:
-                                print(CENTERED)
-                                self.state = CENTERED
-                        else:
-                                print(STOP)
-                                self.state = STOP
-                elif 0 <= point.x < CENTER_LEFT_BORDER:
-                        if point.y < 460:
-                            print(LEFT_OF_CENTER)
-                            self.state = LEFT_OF_CENTER
-                        else:
-                                print(STOP)
-                                self.state = STOP
-                elif point.x > CENTER_RIGHT_BORDER:
-                        if point.y < 460:
-                            print(RIGHT_OF_CENTER)
-                            self.state = RIGHT_OF_CENTER
-                        else:
-                                print(STOP)
-                                self.state = STOP
-                else:  # x = -1
-                        self.state = NOT_DETECTED'''
+                self.ball_state = NOT_DETECTED
 
     def basket_callback(self, basketpoint):
-        global BASKET_X
-        BASKET_X = basketpoint.x
-        global BASKET_Y
-        BASKET_Y = basketpoint.y
+        global basket_x
+        basket_x = basketpoint.x
+        global basket_y
+        basket_y = basketpoint.y
         print("Basket point:\n" + str(basketpoint) + '\n')
-        if self.state == FINISH or self.b_state == BASKET_NOT_DETECTED or self.b_state == BASKET_LEFT_OF_CENTER or self.b_state == BASKET_RIGHT_OF_CENTER:
+        if self.ball_state == FINISH or self.basket_state == NOT_DETECTED or self.basket_state == LEFT_OF_CENTER or self.basket_state == RIGHT_OF_CENTER:
             if BASKET_LEFT_BORDER <= basketpoint.x <= BASKET_RIGHT_BORDER:  # point should be in middle third
-                self.b_state = BASKET_CENTERED
+                self.basket_state = CENTERED
             elif 0 <= basketpoint.x < BASKET_LEFT_BORDER:
-                self.b_state = BASKET_LEFT_OF_CENTER
+                self.basket_state = LEFT_OF_CENTER
             elif basketpoint.x > BASKET_RIGHT_BORDER:
-                self.b_state = BASKET_RIGHT_OF_CENTER
+                self.basket_state = RIGHT_OF_CENTER
             else:  # x = -1
-                self.b_state = BASKET_NOT_DETECTED
+                self.basket_state = NOT_DETECTED
 
 
 def move_forward(speed=ROBOT_SPEED):
@@ -148,37 +110,30 @@ def circle(speed=ROBOT_SPEED):
     return Speeds(0, 0, speed, 0)
 
 
-def calc_linear_velocity(robotSpeed, robotDirectionAngle, wheelAngle):
-    print(math.radians(robotDirectionAngle - wheelAngle))
-    wheelLinearVelocity = robotSpeed * math.cos(math.radians(robotDirectionAngle - wheelAngle))
-    return round(wheelLinearVelocity, 2)
+def calc_omnimotion_speeds(direction_angle, speed=ROBOT_SPEED):
+    # print(math.radians(robotDirectionAngle - wheelAngle))
+    w1speed = round(speed * math.cos(math.radians(direction_angle - W1ANGLE)), 2)
+    w2speed = round(speed * math.cos(math.radians(direction_angle - W2ANGLE)), 2)
+    w3speed = round(speed * math.cos(math.radians(direction_angle - W3ANGLE)), 2)
+    return Speeds(w1speed, w2speed, w3speed, 0)
 
 
 # Task1
 def drive_to_ball(l):
     if l.state == LEFT_OF_CENTER:
         # l.speed_pub.publish(rotate_left())
-        w1speed = calc_linear_velocity(ROBOT_SPEED, 180, W1ANGLE)
-        w2speed = calc_linear_velocity(ROBOT_SPEED, 180, W2ANGLE)
-        w3speed = calc_linear_velocity(ROBOT_SPEED, 180, W3ANGLE)
-        l.speed_pub.publish(Speeds(w1speed, w2speed, w3speed, 0))
-        print("Moving left: " + str(w1speed) + ":" + str(w2speed) + ":" + str(w3speed))
+        l.speed_pub.publish(calc_omnimotion_speeds(180))
+        # print("Moving left: " + str(w1speed) + ":" + str(w2speed) + ":" + str(w3speed))
     elif l.state == RIGHT_OF_CENTER:
         # l.speed_pub.publish(rotate_right())
-        w1speed = calc_linear_velocity(ROBOT_SPEED, 0, W1ANGLE)
-        w2speed = calc_linear_velocity(ROBOT_SPEED, 0, W2ANGLE)
-        w3speed = calc_linear_velocity(ROBOT_SPEED, 0, W3ANGLE)
-        l.speed_pub.publish(Speeds(w1speed, w2speed, w3speed, 0))
-        print("Moving right: " + str(w1speed) + ":" + str(w2speed) + ":" + str(w3speed))
+        l.speed_pub.publish(calc_omnimotion_speeds(0))
+        # print("Moving right: " + str(w1speed) + ":" + str(w2speed) + ":" + str(w3speed))
     if l.state == CENTERED:
         # l.speed_pub.publish(Speeds(0, 0, 0, 10))
 
         # SUBTASK1
-        w1speed = calc_linear_velocity(ROBOT_SPEED, 90, W1ANGLE)
-        w2speed = calc_linear_velocity(ROBOT_SPEED, 90, W2ANGLE)
-        w3speed = calc_linear_velocity(ROBOT_SPEED, 90, W3ANGLE)
-        l.speed_pub.publish(Speeds(w1speed, w2speed, w3speed, 0))
-        print("Moving forward: " + str(w1speed) + ":" + str(w2speed) + ":" + str(w3speed))
+        l.speed_pub.publish(calc_omnimotion_speeds(90))
+        # print("Moving forward: " + str(w1speed) + ":" + str(w2speed) + ":" + str(w3speed))
 
 
 # Task2
@@ -191,12 +146,9 @@ def drive_to_ball_angle(l):
             plus = 5
         if l.state == RIGHT_OF_CENTER:
             plus = -5
-        robot_angle = calculate_robot_angle(X) + plus
-        print("Robot_angle: " + str(robot_angle) + " Robot x : " + str(X))
-        w1speed = calc_linear_velocity(ROBOT_SPEED, robot_angle, W1ANGLE)
-        w2speed = calc_linear_velocity(ROBOT_SPEED, robot_angle, W2ANGLE)
-        w3speed = calc_linear_velocity(ROBOT_SPEED, robot_angle, W3ANGLE)
-        l.speed_pub.publish(Speeds(w1speed, w2speed, w3speed, 0))
+        robot_angle = calculate_robot_angle(ball_x) + plus
+        print("Robot_angle: " + str(robot_angle) + " Robot x : " + str(ball_x))
+        l.speed_pub.publish(calc_omnimotion_speeds(robot_angle))
     else:
         l.speed_pub.publish(rotate_right())
 
@@ -210,27 +162,27 @@ if __name__ == '__main__':
         l = Logic()
         # rospy.spin()
         # Worked find ball and basket
-        rate = rospy.Rate(2)
+        rate = rospy.Rate(RATE)
         # rate = rospy.Rate(8)
         x = 0
         r = 0
         # l.state = THROW_BALL
         while not rospy.is_shutdown():
-            print("Main state: " + l.state + '\n')
-            print("Basket state: " + l.b_state + '\n')
-            if l.state == NOT_DETECTED:
+            print("Main state: " + l.ball_state + '\n')
+            print("Basket state: " + l.basket_state + '\n')
+            if l.ball_state == NOT_DETECTED:
                 if x == 0:
                     l.speed_pub.publish(move_forward(20))
                     x = 1
                 else:
                     l.speed_pub.publish(rotate_right(1))
                     x = 0
-            elif l.state != STOP and l.state != FINISH and l.state != THROW_BALL:
+            elif l.ball_state != STOP and l.ball_state != FINISH and l.ball_state != THROW_BALL:
                 # Task1
                 drive_to_ball(l)
             # Task2
             # drive_to_ball_angle(l)
-            elif l.state == STOP:
+            elif l.ball_state == STOP:
                 if r < 1:
                     # Task1
                     l.speed_pub.publish(move_forward())
@@ -239,23 +191,23 @@ if __name__ == '__main__':
                     r = r + 1
                     rate.sleep()
                 else:
-                    l.state = FINISH
+                    l.ball_state = FINISH
                 l.speed_pub.publish(Speeds(0, 0, 0, 0))
-            elif l.state == FINISH:
-                if l.b_state == BASKET_LEFT_OF_CENTER:
-                    print(BASKET_LEFT_OF_CENTER)
+            elif l.ball_state == FINISH:
+                if l.basket_state == LEFT_OF_CENTER:
+                    print(LEFT_OF_CENTER)
                     l.speed_pub.publish(circle(-5))
-                elif l.b_state == BASKET_RIGHT_OF_CENTER:
-                    print(BASKET_RIGHT_OF_CENTER)
+                elif l.basket_state == RIGHT_OF_CENTER:
+                    print(RIGHT_OF_CENTER)
                     l.speed_pub.publish(circle(5))
-                elif l.b_state == BASKET_CENTERED:
-                    print(BASKET_CENTERED)
+                elif l.basket_state == CENTERED:
+                    print(CENTERED)
                     l.speed_pub.publish(Speeds(0, 0, 0, 0))
-                    l.state = THROW_BALL
+                    l.ball_state = THROW_BALL
                 else:
-                    print(BASKET_NOT_DETECTED)
+                    print(NOT_DETECTED)
                     l.speed_pub.publish(rotate_right())
-            elif l.state == THROW_BALL:
+            elif l.ball_state == THROW_BALL:
                 l.speed_pub.publish(Speeds(10, -10, 0, 2000))
             rate.sleep()
     except rospy.ROSInterruptException:
