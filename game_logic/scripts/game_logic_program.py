@@ -120,15 +120,15 @@ def calc_omnimotion_speeds(direction_angle, speed=ROBOT_SPEED):
 
 # Task1
 def drive_to_ball(l):
-    if l.state == LEFT_OF_CENTER:
+    if l.ball_state == LEFT_OF_CENTER:
         # l.speed_pub.publish(rotate_left())
         l.speed_pub.publish(calc_omnimotion_speeds(180))
         # print("Moving left: " + str(w1speed) + ":" + str(w2speed) + ":" + str(w3speed))
-    elif l.state == RIGHT_OF_CENTER:
+    elif l.ball_state == RIGHT_OF_CENTER:
         # l.speed_pub.publish(rotate_right())
         l.speed_pub.publish(calc_omnimotion_speeds(0))
         # print("Moving right: " + str(w1speed) + ":" + str(w2speed) + ":" + str(w3speed))
-    if l.state == CENTERED:
+    if l.ball_state == CENTERED:
         # l.speed_pub.publish(Speeds(0, 0, 0, 10))
 
         # SUBTASK1
@@ -140,11 +140,11 @@ def drive_to_ball(l):
 def drive_to_ball_angle(l):
     # drives to the ball while keeping it at the edge of the camera
     # intended for second subtask of week 3
-    if l.state != CENTERED:
+    if l.ball_state != CENTERED:
         plus = 0
-        if l.state == LEFT_OF_CENTER:
+        if l.ball_state == LEFT_OF_CENTER:
             plus = 5
-        if l.state == RIGHT_OF_CENTER:
+        if l.ball_state == RIGHT_OF_CENTER:
             plus = -5
         robot_angle = calculate_robot_angle(ball_x) + plus
         print("Robot_angle: " + str(robot_angle) + " Robot x : " + str(ball_x))

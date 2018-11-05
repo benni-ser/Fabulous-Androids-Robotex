@@ -1,0 +1,5 @@
+<launch>
+<include file="$(find general)/launch/game_logic.launch" />
+<include file="$(find general)/launch/hardware.launch" />
+<include file="$(find general)/launch/image_processing.launch" />
+</launch>
