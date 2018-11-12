@@ -5,7 +5,7 @@ import pyrealsense2 as rs
 import numpy as np
 from image_processing.object_detector import Detector
 from general.msg import Point
-import time
+import os
 
 # constants, configs etc.
 RATE = 4
@@ -64,12 +64,12 @@ def check_ball(cx, cy, w, h, contour_area):
 def save_images():
     if SAVE_BALL_IMGS or SAVE_BASKET_IMGS:
         path = "/home/intel/pics"
-        filename = str(time.time()).replace('.', '') + ".png"
-        cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), cam_proc.regular_image)
+        index = len([name for name in os.listdir(path) if os.path.isfile(os.path.join(path, name)) and len(name) > 4 and name[-4:] == '.png'])
+        cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, str(index).zfill(5), cx, cy, squareness), cam_proc.regular_image)
         if SAVE_BALL_IMGS:
-            cv2.imwrite("{}/{}-ball_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), res)
+            cv2.imwrite("{}/{}-ball_({},{})_sq{}.png".format(path, str(index).zfill(5), cx, cy, squareness), res)
         if SAVE_BASKET_IMGS:
-            cv2.imwrite("{}/{}-basket_({},{})_sq{}.png".format(path, filename, cx, cy, squareness), res)
+            cv2.imwrite("{}/{}-basket_({},{})_sq{}.png".format(path, str(index).zfill(5), cx, cy, squareness), res)
 
 
 if __name__ == '__main__':
