@@ -175,7 +175,7 @@ if __name__ == '__main__':
                     l.speed_pub.publish(move_forward(20))
                     x = 1
                 else:
-                    l.speed_pub.publish(rotate_right(1))
+                    l.speed_pub.publish(rotate_right(2))
                     x = 0
             elif l.ball_state != STOP and l.ball_state != FINISH and l.ball_state != THROW_BALL:
                 # Task1

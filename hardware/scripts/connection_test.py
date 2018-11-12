@@ -21,7 +21,7 @@ class MainboardRunner:
 
         r = rospy.Rate(RATE)
         while not rospy.is_shutdown():
-            self.check_for_referee_commands()
+            #self.check_for_referee_commands()
             r.sleep()
 
         print("closing board")

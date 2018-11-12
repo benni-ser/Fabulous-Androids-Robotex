@@ -9,8 +9,8 @@ import time
 
 # constants, configs etc.
 RATE = 4
-SAVE_BALL_IMGS = False
-SAVE_BASKET_IMGS = False
+SAVE_BALL_IMGS = True
+SAVE_BASKET_IMGS = True
 
 
 class RealsenseProcessing():
