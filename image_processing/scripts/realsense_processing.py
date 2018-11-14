@@ -3,14 +3,15 @@ import rospy
 import cv2
 import pyrealsense2 as rs
 import numpy as np
-from image_processing.object_detector import Detector
+#from image_processing.object_detector import Detector
+from object_detector import Detector
 from general.msg import Point
 import os
 
 # constants, configs etc.
 RATE = 4
 SAVE_BALL_IMGS = True
-SAVE_BASKET_IMGS = True
+SAVE_BASKET_IMGS = False
 
 
 class RealsenseProcessing():
@@ -64,7 +65,8 @@ def check_ball(cx, cy, w, h, contour_area):
 def save_images():
     if SAVE_BALL_IMGS or SAVE_BASKET_IMGS:
         path = "/home/intel/pics"
-        index = len([name for name in os.listdir(path) if os.path.isfile(os.path.join(path, name)) and len(name) > 4 and name[-4:] == '.png'])
+        index = [int(float(name[:5])) for name in os.listdir(path) if os.path.isfile(os.path.join(path, name)) and len(name) > 5 and name[:5].isdigit()]
+        index = max(index) + 1 if index else 0
         cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, str(index).zfill(5), cx, cy, squareness), cam_proc.regular_image)
         if SAVE_BALL_IMGS:
             cv2.imwrite("{}/{}-ball_({},{})_sq{}.png".format(path, str(index).zfill(5), cx, cy, squareness), res)

@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import rospy
-from hardware.comport_mainboard import ComportMainboard
+#from hardware.comport_mainboard import ComportMainboard
+from comport_mainboard import ComportMainboard
 from general.msg import Speeds
 
 RATE = 50
