@@ -47,9 +47,10 @@ class ComportMainboard(threading.Thread):
             command += c
             c = self.connection.read()
 
-    def read_line(self):
+    def read_line(self, flush=True):
         if self.connection_opened:
-            self.connection.flush()
+            if flush:
+                self.connection.flush()
             return self.connection.readline()
 
     def close(self):

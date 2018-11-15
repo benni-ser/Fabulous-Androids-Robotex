@@ -5,6 +5,7 @@ from comport_mainboard import ComportMainboard
 from general.msg import Speeds
 
 RATE = 50
+LISTEN_TO_REFEREE_COMMANDS = False
 FIELD_ID = "A"
 ROBOT_ID = "A"
 
@@ -18,12 +19,13 @@ class MainboardRunner:
 
     def run(self):
         self.board.run()
-        # rospy.spin()
-
-        r = rospy.Rate(RATE)
-        while not rospy.is_shutdown():
-            #self.check_for_referee_commands()
-            r.sleep()
+        if LISTEN_TO_REFEREE_COMMANDS:
+            r = rospy.Rate(RATE)
+            while not rospy.is_shutdown():
+                self.check_for_referee_commands()
+                r.sleep()
+        else:
+            rospy.spin()
 
         print("closing board")
         self.board.close()
@@ -44,7 +46,7 @@ class MainboardRunner:
         return self.board.read_line()
 
     def check_for_referee_commands(self):
-        line = self.board.read_line()
+        line = self.board.read_line(False)
         if line and line.startswith("<ref:a") and line[6] == FIELD_ID and (line[7] == ROBOT_ID or line[7] == "X"):
             print("REFEREE COMMAND RECEIVED: " + line)
             if line.startswith("START", 8):
