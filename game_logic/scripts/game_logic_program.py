@@ -4,8 +4,8 @@ from general.msg import Point
 from general.msg import Speeds
 import math
 
-RATE = 4
-ROBOT_SPEED = 8  # general speed used for the robot
+RATE = 8
+ROBOT_SPEED = 15  # general speed used for the robot
 
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
@@ -114,6 +114,7 @@ def calc_speeds(direction_angle=90, speed=0, rotation=0):
     w1speed = round(speed * math.cos(math.radians(direction_angle - W1ANGLE)) + 0.15 * rotation, 2)
     w2speed = round(speed * math.cos(math.radians(direction_angle - W2ANGLE)) + 0.15 * rotation, 2)
     w3speed = round(speed * math.cos(math.radians(direction_angle - W3ANGLE)) + 0.15 * rotation, 2)
+    print(str(w1speed) + ";" + str(w2speed) + ";" + str(w3speed))
     return Speeds(w1speed, w2speed, w3speed, 0)
 
 
