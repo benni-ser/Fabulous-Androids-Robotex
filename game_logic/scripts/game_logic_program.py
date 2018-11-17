@@ -5,12 +5,12 @@ from general.msg import Speeds
 import math
 
 RATE = 8
-ROBOT_SPEED = 15  # general speed used for the robot
+ROBOT_SPEED = 20  # general speed used for the robot
 
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
 DISTANCE_THRESHOLD = 390  # based on vertical ball position
-CENTER = 390  # 390 because camera is not in center
+CENTER = 385  # 390 because camera is not in center
 CENTER_HALF_WIDTH = 25
 CENTER_LEFT_BORDER = CENTER - CENTER_HALF_WIDTH
 CENTER_RIGHT_BORDER = CENTER + CENTER_HALF_WIDTH
@@ -49,7 +49,7 @@ class Logic:
     def ball_callback(self, point):
         self.ball_x = point.x
         self.ball_y = point.y
-        print("Ball point: \n" + str(point) + '\n')
+        # print("Ball point: \n" + str(point) + '\n')
         if self.ball_state != THROW_BALL:
             if CENTER_LEFT_BORDER <= point.x <= CENTER_RIGHT_BORDER:  # point should be in middle third
                 if point.y > DISTANCE_THRESHOLD:  # Ball is both centered and close enough
@@ -66,7 +66,7 @@ class Logic:
     def basket_callback(self, basketpoint):
         self.basket_x = basketpoint.x
         self.basket_y = basketpoint.y
-        print("Basket point:\n" + str(basketpoint) + '\n')
+        # print("Basket point:\n" + str(basketpoint) + '\n')
         #if self.ball_state == FINISH or self.basket_state == NOT_DETECTED or self.basket_state == LEFT_OF_CENTER or self.basket_state == RIGHT_OF_CENTER:
         if BASKET_LEFT_BORDER <= basketpoint.x <= BASKET_RIGHT_BORDER:  # point should be in middle third
             self.basket_state = CENTERED
@@ -111,10 +111,10 @@ def calc_speeds(direction_angle=90, speed=0, rotation=0):
     # direction_angle: 90 -> forward, 0 -> left, 180 -> right
     # rotation_speed: positive -> turn right, negative -> turn left
     # Formula -> wheelLinearVelocity = robotSpeed * cos(robotDirectionAngle - wheelAngle) + wheelDistanceFromCenter * robotAngularVelocity
-    w1speed = round(speed * math.cos(math.radians(direction_angle - W1ANGLE)) + 0.15 * rotation, 2)
-    w2speed = round(speed * math.cos(math.radians(direction_angle - W2ANGLE)) + 0.15 * rotation, 2)
-    w3speed = round(speed * math.cos(math.radians(direction_angle - W3ANGLE)) + 0.15 * rotation, 2)
-    print(str(w1speed) + ";" + str(w2speed) + ";" + str(w3speed))
+    w1speed = round(speed * math.cos(math.radians(direction_angle - W1ANGLE)) + rotation, 2)
+    w2speed = round(speed * math.cos(math.radians(direction_angle - W2ANGLE)) + rotation, 2)
+    w3speed = round(speed * math.cos(math.radians(direction_angle - W3ANGLE)) + rotation, 2)
+    #print(str(w1speed) + ";" + str(w2speed) + ";" + str(w3speed))
     return Speeds(w1speed, w2speed, w3speed, 0)
 
 
@@ -141,9 +141,9 @@ def drive_to_ball(l):
 def find_basket(l):
     # called if ball is centered, but basket has yet to be found and centered as well
     if l.basket_state == LEFT_OF_CENTER:
-        l.speed_pub.publish(circle(-5))
+        l.speed_pub.publish(circle(-ROBOT_SPEED))
     elif l.basket_state == RIGHT_OF_CENTER:
-        l.speed_pub.publish(circle(5))
+        l.speed_pub.publish(circle(ROBOT_SPEED))
     elif l.basket_state == CENTERED:
         l.speed_pub.publish(Speeds(0, 0, 0, 0))
         l.ball_state = THROW_BALL
@@ -159,14 +159,14 @@ if __name__ == '__main__':
         i = 0  # counting variable for searching a ball for a certain period
         j = 0  # counting variable throwing a ball for a certain period
         while not rospy.is_shutdown():
-            print("Main state: " + l.ball_state + '\n')
-            print("Basket state: " + l.basket_state + '\n')
+            print("Ball state: " + l.ball_state + "; x: " + str(l.ball_x) + ", y: " + str(l.ball_y))
+            print("Basket state: " + l.basket_state + "; x: " + str(l.basket_x) + ", y: " + str(l.basket_y))
             if l.ball_state == NOT_DETECTED:
-                if i < RATE * 7:  # turn for 7 seconds (should be adjusted), to find the ball
-                    l.calc_and_send_speeds(rotation=10)
+                if i < RATE * 6:  # turn for x seconds (should be adjusted), to find the ball
+                    l.calc_and_send_speeds(rotation=ROBOT_SPEED)
                     i += 1
-                elif i < RATE * 9:  # move forward for 2 seconds, if ball still not detected
-                    l.calc_and_send_speeds(speed=10)
+                elif i < RATE * 9:  # move forward for a few seconds, if ball still not detected
+                    l.calc_and_send_speeds(speed=ROBOT_SPEED)
                     i += 1
                 else:  # start over with rotating, if ball not detected
                     i = 0
@@ -177,7 +177,7 @@ if __name__ == '__main__':
                 find_basket(l)
             elif l.ball_state == THROW_BALL:
                 if j < RATE * 3:  # try to throw ball for 3 seconds (needs adjusting)
-                    l.speed_pub.publish(Speeds(10, -10, 0, 2000))
+                    l.speed_pub.publish(Speeds(10, -10, 0, 1800))
                     j += 1
                 else:  # start over with ball searching after throw
                     l.ball_state = NOT_DETECTED

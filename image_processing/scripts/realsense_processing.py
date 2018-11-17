@@ -9,9 +9,11 @@ from general.msg import Point
 import os
 
 # constants, configs etc.
-RATE = 4
+RATE = 8
 SAVE_BALL_IMGS = True
-SAVE_BASKET_IMGS = False
+SAVE_BASKET_IMGS = True
+SAVE_FREQUENCY = 2  # save picture every x seconds
+PRINT_INFO = False
 
 
 class RealsenseProcessing():
@@ -56,8 +58,22 @@ def check_ball(cx, cy, w, h, contour_area):
     # (by checking for negative values and comparing with certain size-related thresholds)
     if cx < 0 or cy < 0 or w < 0 or h < 0 or contour_area < 0:
         return False
+    if cy < 30:  # should not be on upper camera edge
+        return False
     squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
     if squareness < 60.0 or contour_area > 3000:
+        return False
+    return True
+
+
+def check_basket(cx, cy, w, h, contour_area):
+    # checks if basket could actually be a basket
+    # (by checking for negative values and comparing with certain size-related thresholds)
+    if cx < 0 or cy < 0 or w < 0 or h < 0 or contour_area < 0:
+        return False
+    if w > h:  # height should be greater than width
+        return False
+    if cy < 20:  # should not be on upper camera edge
         return False
     return True
 
@@ -69,9 +85,11 @@ def save_images():
         index = max(index) + 1 if index else 0
         cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, str(index).zfill(5), cx, cy, squareness), cam_proc.regular_image)
         if SAVE_BALL_IMGS:
-            cv2.imwrite("{}/{}-ball_({},{})_sq{}.png".format(path, str(index).zfill(5), cx, cy, squareness), res)
+            details = "{},{},{},{},{},{}".format(is_ball, cx, cy, w, h, contour_area)
+            cv2.imwrite("{}/{}-ball_({}).png".format(path, str(index).zfill(5), details), ball_res)
         if SAVE_BASKET_IMGS:
-            cv2.imwrite("{}/{}-basket_({},{})_sq{}.png".format(path, str(index).zfill(5), cx, cy, squareness), res)
+            details = "{},{},{},{},{},{}".format(is_basket, basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
+            cv2.imwrite("{}/{}-basket_({}).png".format(path, str(index).zfill(5), details), basket_res)
 
 
 if __name__ == '__main__':
@@ -82,27 +100,30 @@ if __name__ == '__main__':
         i = 0
         while not rospy.is_shutdown():
             cam_proc.get_frame()
-            ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_colour_file.txt", "BallDetector")
-            res, mask, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            cam_proc.pub_ball.publish(Point(cx, cy, 0) if check_ball(cx, cy, w, h, contour_area) else Point(-1, -1, 0))
+            ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_green.txt", "BallDetector")
+            ball_res, mask, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
+            is_ball = check_ball(cx, cy, w, h, contour_area)
+            cam_proc.pub_ball.publish(Point(cx, cy, 0) if is_ball else Point(-1, -1, 0))
 
-            basket_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/basket_colour_file.txt", "BasketDetector")
+            basket_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/basket_blue.txt", "BasketDetector")
             basket_res, basket_mask, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            cam_proc.pub_basket.publish(Point(basket_cx, basket_cy, 0))
+            is_basket = check_basket(basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
+            cam_proc.pub_basket.publish(Point(basket_cx, basket_cy, 0) if is_basket else Point(-1, -1, 0))
 
-            if i % (RATE * 3) == 0:  # for testing purposes
-                # test = np.array(cam_proc.hsv)
-                # l, w, v = test.shape
-                # print("Color of middle point: "+str(test[l/2, w/2, :]))
-                print("Ball{} detected!".format("" if check_ball(cx, cy, w, h, contour_area) else " NOT"))
-                print("contour_area: " + str(contour_area))
-                print("w:{:3}\th:{:3}\tw+h:{}".format(str(w), str(h), str(w + h)))
+            if i % (RATE * SAVE_FREQUENCY) == 0:  # for debugging purposes
                 squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
-                print("\"Squareness\" (in percent): {}".format(str(squareness)))
-                print("cx: " + str(cx))
-                print("cy: " + str(cy))
-                print("______________________")
                 save_images()
+                if PRINT_INFO:
+                    # test = np.array(cam_proc.hsv)
+                    # l, w, v = test.shape
+                    # print("Color of middle point: "+str(test[l/2, w/2, :]))
+                    print("Ball{} detected!".format("" if check_ball(cx, cy, w, h, contour_area) else " NOT"))
+                    print("contour_area: " + str(contour_area))
+                    print("w:{:3}\th:{:3}\tw+h:{}".format(str(w), str(h), str(w + h)))
+                    print("\"Squareness\" (in percent): {}".format(str(squareness)))
+                    print("cx: " + str(cx))
+                    print("cy: " + str(cy))
+                    print("______________________")
             i += 1
             rate.sleep()
     except rospy.ROSInterruptException:

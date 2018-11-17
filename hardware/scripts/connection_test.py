@@ -32,7 +32,7 @@ class MainboardRunner:
 
     def speeds_callback(self, speeds):
         if self.running:
-            print(str(speeds))
+            print("Speeds: {}; {}; {}; {}".format(speeds.left, speeds.right, speeds.back, speeds.thrower))
             self.set_dir(speeds.left, speeds.right, speeds.back, speeds.thrower)
 
     def set_dir(self, front_left, front_right, back, thrower=0):
