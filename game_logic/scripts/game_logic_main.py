@@ -5,7 +5,7 @@ from general.msg import Speeds
 import math
 
 RATE = 8
-ROBOT_SPEED = 20  # general speed used for the robot
+ROBOT_SPEED = 10  # general speed used for the robot
 
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480

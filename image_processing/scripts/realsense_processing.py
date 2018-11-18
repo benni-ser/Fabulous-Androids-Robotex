@@ -90,10 +90,10 @@ def save_images():
         index = max(index) + 1 if index else 0
         cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, str(index).zfill(5), cx, cy, squareness), cam_proc.regular_image)
         if SAVE_BALL_IMGS:
-            details = "{},{},{},{},{},{}".format(is_ball, cx, cy, w, h, contour_area)
+            details = "{},{},{},{},{}".format(cx, cy, w, h, contour_area)
             cv2.imwrite("{}/{}-ball_({}).png".format(path, str(index).zfill(5), details), ball_res)
         if SAVE_BASKET_IMGS:
-            details = "{},{},{},{},{},{}".format(is_basket, basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
+            details = "{},{},{},{},{}".format(basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
             cv2.imwrite("{}/{}-basket_({}).png".format(path, str(index).zfill(5), details), basket_res)
 
 
@@ -108,12 +108,12 @@ if __name__ == '__main__':
 
             ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_green.txt", "BallDetector", "ball")
             ball_res, mask, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            is_ball = check_ball(cx, cy, w, h, contour_area)
+            # is_ball = check_ball(cx, cy, w, h, contour_area)
             cam_proc.pub_ball.publish(Point(cx, cy, 0))
 
             basket_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/basket_{}.txt".format(BASKET_COLOR), "BasketDetector", "basket")
             basket_res, basket_mask, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            is_basket = check_basket(basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
+            # is_basket = check_basket(basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
             cam_proc.pub_basket.publish(Point(basket_cx, basket_cy, 0))
 
             if i % (RATE * SAVE_FREQUENCY) == 0:  # for debugging purposes
