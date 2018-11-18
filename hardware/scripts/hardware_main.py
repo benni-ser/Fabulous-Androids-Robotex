@@ -1,11 +1,10 @@
 #! /usr/bin/env python
 import rospy
-#from hardware.comport_mainboard import ComportMainboard
 from comport_mainboard import ComportMainboard
 from general.msg import Speeds
 
 RATE = 50
-LISTEN_TO_REFEREE_COMMANDS = False
+LISTEN_TO_REFEREE_COMMANDS = True
 FIELD_ID = "A"
 ROBOT_ID = "A"
 

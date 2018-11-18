@@ -3,17 +3,21 @@ import rospy
 import cv2
 import pyrealsense2 as rs
 import numpy as np
-#from image_processing.object_detector import Detector
+# from image_processing.object_detector import Detector
 from object_detector import Detector
 from general.msg import Point
 import os
 
-# constants, configs etc.
+# Configuration
 RATE = 8
 SAVE_BALL_IMGS = True
 SAVE_BASKET_IMGS = True
 SAVE_FREQUENCY = 2  # save picture every x seconds
 PRINT_INFO = False
+
+BALL_SQUARENESS_THRESHOLD = 60.0  # squareness threshold (in percent)
+BALL_V_UPPER_THRESHOLD = 40  # used to ignore 'ball objects' at the very top of the image
+BASKET_V_UPPER_THRESHOLD = 20
 
 
 class RealsenseProcessing():
@@ -58,10 +62,10 @@ def check_ball(cx, cy, w, h, contour_area):
     # (by checking for negative values and comparing with certain size-related thresholds)
     if cx < 0 or cy < 0 or w < 0 or h < 0 or contour_area < 0:
         return False
-    if cy < 30:  # should not be on upper camera edge
+    if cy < BALL_V_UPPER_THRESHOLD:  # should not be on upper camera edge
         return False
     squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
-    if squareness < 60.0 or contour_area > 3000:
+    if squareness < BALL_SQUARENESS_THRESHOLD or contour_area > 3000:
         return False
     return True
 
@@ -73,7 +77,7 @@ def check_basket(cx, cy, w, h, contour_area):
         return False
     if w > h:  # height should be greater than width
         return False
-    if cy < 20:  # should not be on upper camera edge
+    if cy < BASKET_V_UPPER_THRESHOLD:  # should not be on upper camera edge
         return False
     return True
 
@@ -100,6 +104,7 @@ if __name__ == '__main__':
         i = 0
         while not rospy.is_shutdown():
             cam_proc.get_frame()
+
             ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_green.txt", "BallDetector")
             ball_res, mask, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             is_ball = check_ball(cx, cy, w, h, contour_area)
