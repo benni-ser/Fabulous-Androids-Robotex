@@ -5,8 +5,13 @@ import os.path as osp
 import os
 
 
+BALL_SQUARENESS_THRESHOLD = 60.0  # squareness threshold (in percent)
+BALL_V_UPPER_THRESHOLD = 40  # used to ignore 'ball objects' at the very top of the image
+BASKET_V_UPPER_THRESHOLD = 20
+
+
 class Detector:
-    def __init__(self, colorConfig, name):
+    def __init__(self, colorConfig, name, mode):
         self.name = name
         f = open(colorConfig)
         self.minhue = int(f.readline())
@@ -15,9 +20,10 @@ class Detector:
         self.maxhue = int(f.readline())
         self.maxsat = int(f.readline())
         self.maxint = int(f.readline())
+        self.mode = mode.lower()
         f.close()
 
-    def detect(self, frame, hsv, blub=False):
+    def detect(self, frame, hsv):
         cx = -1
         cy = -1
         contour_area = -1
@@ -35,51 +41,70 @@ class Detector:
             contourArea = []
             # find the biggest area
             for i in contours:
-
-                M = cv2.moments(i)
-                try:
-                    ix = int(M['m10'] / M['m00'])
-                    iy = int(M['m01'] / M['m00'])
-                except:
-                    ix = -1
-                    iy = -1
-
-                if ix > 300 or ix < 360:
-                    contourArea.append(int(cv2.contourArea(i)*1.2))
-                else:
-                    contourArea.append(cv2.contourArea(i))
-                #print(cv2.contourArea(i))
+                ix, iy, x, y, w, h, c_area = self.get_details(i)
+                contourArea.append(c_area)
 
             j = 0
             s = 0
-            for i in range(len(contours)):
-                if contourArea[i] > s:
+            for i in range(len(contours)):  # find biggest object + check if eligible
+                if contourArea[i] > s and self.check_contour(contours[i]):
                     s = contourArea[i]
                     j = i
 
             #c = max(contours, key=cv2.contourArea)
             c = contours[j]
-            M = cv2.moments(c)
-            contour_area = cv2.contourArea(c)
-
             area = cv2.minAreaRect(c)
-            try:
-                #known_dist = 0.15
-                #known_width = 0.04
-                #focal_length = 649
-                #distance = known_width * focal_length / area[1][0]
-                #   print(distance)
+            cx, cy, x, y, w, h, contour_area = self.get_details(c)
 
-                cx = int(M['m10'] / M['m00'])
-                cy = int(M['m01'] / M['m00'])
+            if cx > 0 and cy > 0:
+                # draw the book contour (in green)
                 cv2.circle(res, (cx, cy), 5, (0, 255, 0), -1)
-            except:
-                M = 0
-                cx = -1
-                cy = -1
-                contour_area = -1
-            x, y, w, h = cv2.boundingRect(c)
-            # draw the book contour (in green)
-            cv2.rectangle(res, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        #print("w:", w)
+                cv2.rectangle(res, (x, y), (x + w, y + h), (0, 255, 0), 2)
         return res, mask, cx, cy, contour_area, w, h
+
+    def get_details(self, contour):
+        contour_area = cv2.contourArea(contour)
+        M = cv2.moments(contour)
+        try:
+            cx = int(M['m10'] / M['m00'])
+            cy = int(M['m01'] / M['m00'])
+        except:
+            cx = -1
+            cy = -1
+            contour_area = -1
+        x, y, w, h = cv2.boundingRect(contour)
+        return cx, cy, x, y, w, h, contour_area
+
+    def check_contour(self, contour):
+        # convenience function
+        cx, cy, x, y, w, h, contour_area = self.get_details(contour)
+        if self.mode == 'ball':
+            return self.check_ball(cx, cy, w, h, contour_area)
+        elif self.mode == 'basket':
+            return self.check_ball(cx, cy, w, h, contour_area)
+        else:
+            print("INVALID MODE FOR OBJECT DETECTOR!!!")
+            return False
+
+    def check_ball(self, cx, cy, w, h, contour_area):
+        # checks if ball could actually be a ball
+        # (by checking for negative values and comparing with certain size-related thresholds)
+        if cx < 0 or cy < 0 or w < 0 or h < 0 or contour_area < 0:
+            return False
+        if cy < BALL_V_UPPER_THRESHOLD:  # should not be on upper camera edge
+            return False
+        squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
+        if squareness < BALL_SQUARENESS_THRESHOLD or contour_area > 3000:
+            return False
+        return True
+
+    def check_basket(self, cx, cy, w, h, contour_area):
+        # checks if basket could actually be a basket
+        # (by checking for negative values and comparing with certain size-related thresholds)
+        if cx < 0 or cy < 0 or w < 0 or h < 0 or contour_area < 0:
+            return False
+        if w > h:  # height should be greater than width
+            return False
+        if cy < BASKET_V_UPPER_THRESHOLD:  # should not be on upper camera edge
+            return False
+        return True

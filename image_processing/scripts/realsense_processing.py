@@ -106,15 +106,15 @@ if __name__ == '__main__':
         while not rospy.is_shutdown():
             cam_proc.get_frame()
 
-            ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_green.txt", "BallDetector")
-            ball_res, mask, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv, True if i % (RATE * SAVE_FREQUENCY) == 0 else False)
+            ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_green.txt", "BallDetector", "ball")
+            ball_res, mask, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             is_ball = check_ball(cx, cy, w, h, contour_area)
-            cam_proc.pub_ball.publish(Point(cx, cy, 0) if is_ball else Point(-1, -1, 0))
+            cam_proc.pub_ball.publish(Point(cx, cy, 0))
 
-            basket_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/basket_{}.txt".format(BASKET_COLOR), "BasketDetector")
+            basket_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/basket_{}.txt".format(BASKET_COLOR), "BasketDetector", "basket")
             basket_res, basket_mask, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             is_basket = check_basket(basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
-            cam_proc.pub_basket.publish(Point(basket_cx, basket_cy, 0) if is_basket else Point(-1, -1, 0))
+            cam_proc.pub_basket.publish(Point(basket_cx, basket_cy, 0))
 
             if i % (RATE * SAVE_FREQUENCY) == 0:  # for debugging purposes
                 squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
