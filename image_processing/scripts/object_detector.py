@@ -17,7 +17,7 @@ class Detector:
         self.maxint = int(f.readline())
         f.close()
 
-    def detect(self, frame, hsv):
+    def detect(self, frame, hsv, blub=False):
         cx = -1
         cy = -1
         contour_area = -1

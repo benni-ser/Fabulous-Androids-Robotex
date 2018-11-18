@@ -4,7 +4,7 @@ from comport_mainboard import ComportMainboard
 from general.msg import Speeds
 
 RATE = 50
-LISTEN_TO_REFEREE_COMMANDS = True
+LISTEN_TO_REFEREE_COMMANDS = False
 FIELD_ID = "A"
 ROBOT_ID = "A"
 

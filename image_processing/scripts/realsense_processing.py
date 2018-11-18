@@ -14,6 +14,7 @@ SAVE_BALL_IMGS = True
 SAVE_BASKET_IMGS = True
 SAVE_FREQUENCY = 2  # save picture every x seconds
 PRINT_INFO = False
+BASKET_COLOR = "blue"  # two options: 'blue' or 'red'
 
 BALL_SQUARENESS_THRESHOLD = 60.0  # squareness threshold (in percent)
 BALL_V_UPPER_THRESHOLD = 40  # used to ignore 'ball objects' at the very top of the image
@@ -106,11 +107,11 @@ if __name__ == '__main__':
             cam_proc.get_frame()
 
             ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_green.txt", "BallDetector")
-            ball_res, mask, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
+            ball_res, mask, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv, True if i % (RATE * SAVE_FREQUENCY) == 0 else False)
             is_ball = check_ball(cx, cy, w, h, contour_area)
             cam_proc.pub_ball.publish(Point(cx, cy, 0) if is_ball else Point(-1, -1, 0))
 
-            basket_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/basket_blue.txt", "BasketDetector")
+            basket_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/basket_{}.txt".format(BASKET_COLOR), "BasketDetector")
             basket_res, basket_mask, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             is_basket = check_basket(basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
             cam_proc.pub_basket.publish(Point(basket_cx, basket_cy, 0) if is_basket else Point(-1, -1, 0))
