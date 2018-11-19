@@ -5,12 +5,12 @@ from general.msg import Speeds
 import math
 
 RATE = 8
-ROBOT_SPEED = 10  # general speed used for the robot
+ROBOT_SPEED = 15  # general speed used for the robot
 
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
 DISTANCE_THRESHOLD = 390  # based on vertical ball position
-CENTER = 385  # 390 because camera is not in center
+CENTER = 320  # 640 / 2
 CENTER_HALF_WIDTH = 25
 CENTER_LEFT_BORDER = CENTER - CENTER_HALF_WIDTH
 CENTER_RIGHT_BORDER = CENTER + CENTER_HALF_WIDTH
@@ -106,10 +106,11 @@ def drive_to_ball(l):
     # aim: drive to ball until it is centered and in front of robot (y ~ 400)
     # TODO parameter for ball distance -> adjust speed (and rotational speed)
     angle_from_center = (CENTER - l.ball_x) * DEGREE_PER_PIXEL
-    rotational_speed = min(ROBOT_SPEED, angle_from_center * ROBOT_SPEED * 0.1) if abs(angle_from_center) > 1.0 else 0
+    rotational_speed = -1 * min(ROBOT_SPEED, abs(angle_from_center * ROBOT_SPEED * 0.1)) if abs(angle_from_center) > 1.0 else 0
+    rotational_speed = -rotational_speed if angle_from_center < 0 else rotational_speed
     moving_speed = 0 if l.ball_y > DISTANCE_THRESHOLD else ROBOT_SPEED  # if ball is very close just rotate to center it
-    basket_bias = (l.ball_x - l.basket_y) * (90.0 / IMAGE_WIDTH) if l.basket_state != NOT_DETECTED else 0
-    moving_angle = (90 - angle_from_center) + basket_bias
+    # basket_bias = (l.ball_x - l.basket_y) * (90.0 / IMAGE_WIDTH) if l.basket_state != NOT_DETECTED else 0
+    moving_angle = (90 - angle_from_center)#  + basket_bias
     l.calc_and_send_speeds(moving_angle, moving_speed, rotational_speed)
 
 
@@ -152,7 +153,7 @@ if __name__ == '__main__':
                 find_basket(l)
             elif l.ball_state == THROW_BALL:
                 if j < RATE * 3:  # try to throw ball for 3 seconds (needs adjusting)
-                    l.speed_pub.publish(Speeds(10, -10, 0, 1800))
+                    l.speed_pub.publish(Speeds(10, -10, 0, 1500))
                     j += 1
                 else:  # start over with ball searching after throw
                     l.ball_state = NOT_DETECTED

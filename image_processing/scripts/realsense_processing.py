@@ -83,24 +83,29 @@ def check_basket(cx, cy, w, h, contour_area):
     return True
 
 
-def save_images():
+def save_images(session_idx, image_idx):
     if SAVE_BALL_IMGS or SAVE_BASKET_IMGS:
-        path = "/home/intel/pics"
-        index = [int(float(name[:5])) for name in os.listdir(path) if os.path.isfile(os.path.join(path, name)) and len(name) > 5 and name[:5].isdigit()]
-        index = max(index) + 1 if index else 0
-        cv2.imwrite("{}/{}-pic_({},{})_sq{}.png".format(path, str(index).zfill(5), cx, cy, squareness), cam_proc.regular_image)
+        root = "/home/intel/pics/{}-{}-".format(str(session_idx).zfill(4), str(image_idx).zfill(4))
+        cv2.imwrite("{}pic_({},{})_sq{}.png".format(root, cx, cy, squareness), cam_proc.regular_image)
         if SAVE_BALL_IMGS:
             details = "{},{},{},{},{}".format(cx, cy, w, h, contour_area)
-            cv2.imwrite("{}/{}-ball_({}).png".format(path, str(index).zfill(5), details), ball_res)
+            cv2.imwrite("{}ball_({}).png".format(root, details), ball_res)
         if SAVE_BASKET_IMGS:
             details = "{},{},{},{},{}".format(basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
-            cv2.imwrite("{}/{}-basket_({}).png".format(path, str(index).zfill(5), details), basket_res)
+            cv2.imwrite("{}basket_({}).png".format(root, details), basket_res)
+        print("Saved images: Session {}, Image {}".format(session_idx, image_idx))
 
 
 if __name__ == '__main__':
     try:
         cam_proc = RealsenseProcessing()
         cam_proc.run()
+
+        # used for saving images
+        path = "/home/intel/pics"
+        session_idx = [int(float(name[:4])) for name in os.listdir(path) if os.path.isfile(os.path.join(path, name)) and len(name) > 4 and name[:4].isdigit()]
+        session_idx = max(session_idx) + 1 if session_idx else 0
+
         rate = rospy.Rate(RATE)
         i = 0
         while not rospy.is_shutdown():
@@ -116,9 +121,9 @@ if __name__ == '__main__':
             # is_basket = check_basket(basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
             cam_proc.pub_basket.publish(Point(basket_cx, basket_cy, 0))
 
-            if i % (RATE * SAVE_FREQUENCY) == 0:  # for debugging purposes
+            if i % (RATE * SAVE_FREQUENCY) == 0 and i != 0:  # for debugging purposes
                 squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
-                save_images()
+                save_images(session_idx, i / (RATE * SAVE_FREQUENCY) - 1)
                 if PRINT_INFO:
                     # test = np.array(cam_proc.hsv)
                     # l, w, v = test.shape

@@ -44,16 +44,19 @@ class Detector:
                 ix, iy, x, y, w, h, c_area = self.get_details(i)
                 contourArea.append(c_area)
 
-            j = 0
+            j = -1
             s = 0
             for i in range(len(contours)):  # find biggest object + check if eligible
                 if contourArea[i] > s and self.check_contour(contours[i]):
                     s = contourArea[i]
                     j = i
 
+            if j == -1: # no suitable object found
+                return res, mask, -1, -1, -1, -1, -1
+
             #c = max(contours, key=cv2.contourArea)
             c = contours[j]
-            area = cv2.minAreaRect(c)
+            #area = cv2.minAreaRect(c)
             cx, cy, x, y, w, h, contour_area = self.get_details(c)
 
             if cx > 0 and cy > 0:
@@ -89,6 +92,7 @@ class Detector:
     def check_ball(self, cx, cy, w, h, contour_area):
         # checks if ball could actually be a ball
         # (by checking for negative values and comparing with certain size-related thresholds)
+        # TODO exclude objects that are too big considering their approximate distance 
         if cx < 0 or cy < 0 or w < 0 or h < 0 or contour_area < 0:
             return False
         if cy < BALL_V_UPPER_THRESHOLD:  # should not be on upper camera edge
