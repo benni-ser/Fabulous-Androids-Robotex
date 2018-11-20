@@ -17,6 +17,7 @@ add_message_files(
         FILES
         Point.msg
 	Speeds.msg
+	Thrower.msg
 )
 
 generate_messages(

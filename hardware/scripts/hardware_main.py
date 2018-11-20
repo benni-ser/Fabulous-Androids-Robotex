@@ -2,9 +2,10 @@
 import rospy
 from comport_mainboard import ComportMainboard
 from general.msg import Speeds
+from general.msg import Thrower
 
 RATE = 50
-LISTEN_TO_REFEREE_COMMANDS = False
+LISTEN_TO_REFEREE_COMMANDS = True
 FIELD_ID = "A"
 ROBOT_ID = "A"
 
@@ -13,8 +14,11 @@ class MainboardRunner:
     def __init__(self):
         rospy.init_node("connection_test", anonymous=True)
         rospy.Subscriber("speeds", Speeds, self.speeds_callback)
+        rospy.Subscriber("thrower_config", Thrower, self.thrower_callback)
         self.board = ComportMainboard()
-        self.running = True
+        self.running = not LISTEN_TO_REFEREE_COMMANDS
+        self.last_Speeds = Speeds(0, 0, 0)
+        self.last_Thrower = Thrower(0, 0)
 
     def run(self):
         self.board.run()
@@ -31,13 +35,21 @@ class MainboardRunner:
 
     def speeds_callback(self, speeds):
         if self.running:
-            print("Speeds: {}; {}; {}; {}".format(speeds.left, speeds.right, speeds.back, speeds.thrower))
-            self.set_dir(speeds.left, speeds.right, speeds.back, speeds.thrower)
+            print("Speeds: {}; {}; {}".format(speeds.left, speeds.right, speeds.back))
+            self.set_dir(speeds.left, speeds.right, speeds.back)
 
-    def set_dir(self, front_left, front_right, back, thrower=0):
+    def thrower_callback(self, thrower_config):
+        if self.running:
+            print("Thrower: speed -> {}; angle -> {}".format(thrower_config.speed, thrower_config.angle))
+            self.set_thrower(thrower_config.speed, thrower_config.angle)
+
+    def set_dir(self, front_left, front_right, back):
         self.board.write("sd:{}:{}:{}:0".format(front_left, front_right, back))
-        if thrower > 0:
-            self.board.write("d:{}".format(thrower))
+        return self.board.read_line()
+
+    def set_thrower(self, speed, angle):
+        self.board.write("d:{}".format(speed))
+        self.board.write("sv:{}".format(angle))
         return self.board.read_line()
 
     def get_dir(self):
@@ -45,8 +57,9 @@ class MainboardRunner:
         return self.board.read_line()
 
     def check_for_referee_commands(self):
-        line = self.board.read_line(False)
-        if line and line.startswith("<ref:a") and line[6] == FIELD_ID and (line[7] == ROBOT_ID or line[7] == "X"):
+        line = self.board.read()  # TODO check if this works
+        if line and len(line) > 7 and line.startswith("<ref:a") and line[6] == FIELD_ID and (
+                line[7] == ROBOT_ID or line[7] == "X"):
             print("REFEREE COMMAND RECEIVED: " + line)
             if line.startswith("START", 8):
                 self.running = True

@@ -7,6 +7,7 @@ import numpy as np
 from object_detector import Detector
 from general.msg import Point
 import os
+import os.path as osp
 
 # Configuration
 RATE = 8
@@ -14,11 +15,9 @@ SAVE_BALL_IMGS = True
 SAVE_BASKET_IMGS = True
 SAVE_FREQUENCY = 2  # save picture every x seconds
 PRINT_INFO = False
-BASKET_COLOR = "blue"  # two options: 'blue' or 'red'
+BASKET_COLOR = "blue"  # options: 'blue' or 'red'
 
-BALL_SQUARENESS_THRESHOLD = 60.0  # squareness threshold (in percent)
-BALL_V_UPPER_THRESHOLD = 40  # used to ignore 'ball objects' at the very top of the image
-BASKET_V_UPPER_THRESHOLD = 20
+COLOR_CONFIG_PATH = "/home/intel/catkin_ws/src/image_processing/config"
 
 
 class RealsenseProcessing():
@@ -58,32 +57,7 @@ class RealsenseProcessing():
         self.hsv = cv2.cvtColor(self.regular_image, cv2.COLOR_BGR2HSV)
 
 
-def check_ball(cx, cy, w, h, contour_area):
-    # checks if ball could actually be a ball
-    # (by checking for negative values and comparing with certain size-related thresholds)
-    if cx < 0 or cy < 0 or w < 0 or h < 0 or contour_area < 0:
-        return False
-    if cy < BALL_V_UPPER_THRESHOLD:  # should not be on upper camera edge
-        return False
-    squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
-    if squareness < BALL_SQUARENESS_THRESHOLD or contour_area > 3000:
-        return False
-    return True
-
-
-def check_basket(cx, cy, w, h, contour_area):
-    # checks if basket could actually be a basket
-    # (by checking for negative values and comparing with certain size-related thresholds)
-    if cx < 0 or cy < 0 or w < 0 or h < 0 or contour_area < 0:
-        return False
-    if w > h:  # height should be greater than width
-        return False
-    if cy < BASKET_V_UPPER_THRESHOLD:  # should not be on upper camera edge
-        return False
-    return True
-
-
-def save_images(session_idx, image_idx):
+def save_images(image_idx):
     if SAVE_BALL_IMGS or SAVE_BASKET_IMGS:
         root = "/home/intel/pics/{}-{}-".format(str(session_idx).zfill(4), str(image_idx).zfill(4))
         cv2.imwrite("{}pic_({},{})_sq{}.png".format(root, cx, cy, squareness), cam_proc.regular_image)
@@ -103,7 +77,7 @@ if __name__ == '__main__':
 
         # used for saving images
         path = "/home/intel/pics"
-        session_idx = [int(float(name[:4])) for name in os.listdir(path) if os.path.isfile(os.path.join(path, name)) and len(name) > 4 and name[:4].isdigit()]
+        session_idx = [int(float(name[:4])) for name in os.listdir(path) if osp.isfile(osp.join(path, name)) and len(name) > 4 and name[:4].isdigit()]
         session_idx = max(session_idx) + 1 if session_idx else 0
 
         rate = rospy.Rate(RATE)
@@ -111,24 +85,22 @@ if __name__ == '__main__':
         while not rospy.is_shutdown():
             cam_proc.get_frame()
 
-            ball_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/ball_green.txt", "BallDetector", "ball")
-            ball_res, mask, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            # is_ball = check_ball(cx, cy, w, h, contour_area)
+            ball_detector = Detector(osp.join(COLOR_CONFIG_PATH, "ball_green.txt"), "BallDetector", "ball")
+            ball_res, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             cam_proc.pub_ball.publish(Point(cx, cy, 0))
 
-            basket_detector = Detector("/home/intel/catkin_ws/src/image_processing/config/basket_{}.txt".format(BASKET_COLOR), "BasketDetector", "basket")
-            basket_res, basket_mask, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            # is_basket = check_basket(basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
+            basket_detector = Detector(osp.join(COLOR_CONFIG_PATH, "basket_{}.txt".format(BASKET_COLOR)), "BasketDetector", "basket")
+            basket_res, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             cam_proc.pub_basket.publish(Point(basket_cx, basket_cy, 0))
 
             if i % (RATE * SAVE_FREQUENCY) == 0 and i != 0:  # for debugging purposes
                 squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
-                save_images(session_idx, i / (RATE * SAVE_FREQUENCY) - 1)
+                save_images(i / (RATE * SAVE_FREQUENCY) - 1)
                 if PRINT_INFO:
                     # test = np.array(cam_proc.hsv)
                     # l, w, v = test.shape
                     # print("Color of middle point: "+str(test[l/2, w/2, :]))
-                    print("Ball{} detected!".format("" if check_ball(cx, cy, w, h, contour_area) else " NOT"))
+                    print("Ball{} detected!".format("" if cx != -1 else " NOT"))
                     print("contour_area: " + str(contour_area))
                     print("w:{:3}\th:{:3}\tw+h:{}".format(str(w), str(h), str(w + h)))
                     print("\"Squareness\" (in percent): {}".format(str(squareness)))
