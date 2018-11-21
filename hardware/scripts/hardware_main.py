@@ -1,11 +1,13 @@
 #! /usr/bin/env python
 import rospy
+import math
 from comport_mainboard import ComportMainboard
 from general.msg import Speeds
 from general.msg import Thrower
 
 RATE = 50
 LISTEN_TO_REFEREE_COMMANDS = True
+WAIT_FOR_START_SIGNAL = False  # set to True in competitions
 FIELD_ID = "A"
 ROBOT_ID = "A"
 
@@ -16,7 +18,7 @@ class MainboardRunner:
         rospy.Subscriber("speeds", Speeds, self.speeds_callback)
         rospy.Subscriber("thrower_config", Thrower, self.thrower_callback)
         self.board = ComportMainboard()
-        self.running = not LISTEN_TO_REFEREE_COMMANDS
+        self.running = not WAIT_FOR_START_SIGNAL
         self.last_Speeds = Speeds(0, 0, 0)
         self.last_Thrower = Thrower(0, 0)
 
@@ -24,8 +26,10 @@ class MainboardRunner:
         self.board.run()
         if LISTEN_TO_REFEREE_COMMANDS:
             r = rospy.Rate(RATE)
+            i = 0
             while not rospy.is_shutdown():
-                self.check_for_referee_commands()
+                if i > math.floor(RATE/2):
+                    self.check_for_referee_commands()
                 r.sleep()
         else:
             rospy.spin()
@@ -45,16 +49,16 @@ class MainboardRunner:
 
     def set_dir(self, front_left, front_right, back):
         self.board.write("sd:{}:{}:{}:0".format(front_left, front_right, back))
-        return self.board.read_line()
+        return self.board.read()
 
     def set_thrower(self, speed, angle):
         self.board.write("d:{}".format(speed))
         self.board.write("sv:{}".format(angle))
-        return self.board.read_line()
+        return self.board.read()
 
     def get_dir(self):
         self.board.write('gs')
-        return self.board.read_line()
+        return self.board.read()
 
     def check_for_referee_commands(self):
         line = self.board.read()  # TODO check if this works

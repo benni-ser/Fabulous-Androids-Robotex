@@ -12,10 +12,10 @@ class Detector:
         self.name = name
         f = open(color_config)
         self.minhue = int(f.readline())
-        self.minsat = int(f.readline())
-        self.minint = int(f.readline())
         self.maxhue = int(f.readline())
+        self.minsat = int(f.readline())
         self.maxsat = int(f.readline())
+        self.minint = int(f.readline())
         self.maxint = int(f.readline())
         self.mode = mode.lower()
         f.close()
@@ -66,7 +66,7 @@ class Detector:
         # convenience function
         cx, cy, x, y, w, h, contour_area = get_details(contour)
         if self.mode == 'ball':
-            return check_ball(cx, cy, w, h, contour_area)
+            return check_ball(contour)
         elif self.mode == 'basket':
             return check_basket(cx, cy, w, h, contour_area)
         else:
@@ -88,16 +88,17 @@ def get_details(contour):
     return cx, cy, x, y, w, h, contour_area
 
 
-def check_ball(cx, cy, w, h, contour_area):
+def check_ball(contour):
     # checks if ball could actually be a ball
     # (by checking for negative values and comparing with certain size-related thresholds)
     # TODO exclude objects that are too big considering their approximate distance
+    cx, cy, x, y, w, h, contour_area = get_details(contour)
     if cx < 0 or cy < 0 or w < 0 or h < 0 or contour_area < 0:
         return False
     if cy < BALL_V_UPPER_THRESHOLD:  # should not be on upper camera edge
         return False
     squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
-    if squareness < BALL_SQUARENESS_THRESHOLD or contour_area > 3000:
+    if (squareness < BALL_SQUARENESS_THRESHOLD and y + h < 480) or contour_area > 3000:
         return False
     return True
 

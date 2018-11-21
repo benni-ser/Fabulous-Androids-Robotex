@@ -8,6 +8,9 @@ import math
 RATE = 8
 ROBOT_SPEED = 15  # general speed used for the robot
 
+THROWER_SPEED = 1000
+THROWER_ANGLE = 700  # min 700, max 1500
+
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
 DISTANCE_THRESHOLD = 390  # based on vertical ball position
@@ -156,11 +159,11 @@ if __name__ == '__main__':
             elif l.ball_state == THROW_BALL:
                 if j < RATE * 3:  # try to throw ball for 3 seconds (needs adjusting)
                     l.speed_pub.publish(Speeds(10, -10, 0))
-                    l.thrower_pub.publish(Thrower(1500, 0))
+                    l.thrower_pub.publish(Thrower(THROWER_SPEED, THROWER_ANGLE))
                     j += 1
                 else:  # start over with ball searching after throw
                     l.ball_state = NOT_DETECTED
-                    l.thrower_pub.publish(Thrower(0, 0))
+                    l.thrower_pub.publish(Thrower(0, THROWER_ANGLE))
                     j = 0
             rate.sleep()
     except rospy.ROSInterruptException:
