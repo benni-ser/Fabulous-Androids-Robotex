@@ -20,15 +20,15 @@ class Detector:
         self.mode = mode.lower()
         f.close()
 
-    def detect(self, frame, hsv):
+    def detect(self, frame, hsv, lower_hsv=[], upper_hsv=[]):
         cx = -1
         cy = -1
         contour_area = -1
         w = -1
         h = -1
         # Threshold the HSV image to get only necessary colors
-        lower_color = np.array([self.minhue, self.minsat, self.minint])
-        upper_color = np.array([self.maxhue, self.maxsat, self.maxint])
+        lower_color = np.array(lower_hsv) if lower_hsv else np.array([self.minhue, self.minsat, self.minint])
+        upper_color = np.array(upper_hsv) if upper_hsv else np.array([self.maxhue, self.maxsat, self.maxint])
         mask = cv2.inRange(hsv, lower_color, upper_color)
         # Bitwise-AND mask and original image
         res = cv2.bitwise_and(frame, frame, mask=mask)
