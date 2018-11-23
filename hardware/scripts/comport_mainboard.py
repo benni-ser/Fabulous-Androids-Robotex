@@ -45,23 +45,30 @@ class ComportMainboard(threading.Thread):
     def read(self):
         command = ""
         c = self.connection.read()
-        while c != '\n':
+        while not rospy.is_shutdown() and c != '\n':
             command += c
             c = self.connection.read()
-        time_since_last = round(time.time() - self.last_read, 2)
-        exec_time = round(time.time() - self.start_time, 2)
-        print("READ WAS CALLED")
-        print("Time since last read: \t{} seconds".format(time_since_last))
-        print("Total execution time: \t{} seconds".format(exec_time))
-        self.last_read = time.time()
         return command
 
-    def read_line(self, flush=True):
+    def read_line(self, flush=False):
         if self.connection_opened:
             if flush:
                 self.connection.flush()
+
+            ''' # for debugging
+            time_since_last = round(time.time() - self.last_read, 2)
+            exec_time = round(time.time() - self.start_time, 2)
             print("READ_LINE WAS CALLED")
-            return self.connection.readline()
+            print("Time since last read: \t{} seconds".format(time_since_last))
+            print("Total execution time: \t{} seconds".format(exec_time))
+            self.last_read = time.time()
+            '''
+
+            if self.connection.in_waiting:
+                # print("BUFFER NOT EMPTY")
+                return self.connection.readline()
+            else:
+                return ''
 
     def close(self):
         if self.connection is not None and self.connection.isOpen():  # close coil

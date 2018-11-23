@@ -4,7 +4,7 @@ import numpy as np
 
 BALL_SQUARENESS_THRESHOLD = 60.0  # squareness threshold (in percent)
 BALL_V_UPPER_THRESHOLD = 40  # used to ignore 'ball objects' at the very top of the image
-BASKET_V_UPPER_THRESHOLD = 20
+BASKET_AREA_THRESHOLD = 750 # threshold for minimal contour area of basket object
 
 
 class Detector:
@@ -112,7 +112,6 @@ def check_basket(cx, cy, w, h, contour_area):
         return False
     if w > h:  # height should be greater than width
         return False
-    if h < 40:
-    #if cy < BASKET_V_UPPER_THRESHOLD:  # should not be on upper camera edge
+    if contour_area < BASKET_AREA_THRESHOLD:
         return False
     return True

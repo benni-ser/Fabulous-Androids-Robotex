@@ -15,7 +15,7 @@ SAVE_BALL_IMGS = True
 SAVE_BASKET_IMGS = True
 SAVE_FREQUENCY = 2  # save picture every x seconds
 PRINT_INFO = False
-BASKET_COLOR = "blue"  # options: 'blue' or 'red'
+BASKET_COLOR = "red"  # options: 'blue' or 'red'
 
 COLOR_CONFIG_PATH = "/home/intel/catkin_ws/src/image_processing/config"
 
@@ -65,7 +65,7 @@ def save_images(image_idx):
             details = "{},{},{},{},{}".format(cx, cy, w, h, contour_area)
             cv2.imwrite("{}ball_({}).png".format(root, details), ball_res)
         if SAVE_BASKET_IMGS:
-            details = "{},{},{},{},{}".format(basket_cx, basket_cy, basket_w, basket_h, basket_contour_area)
+            details = "{},{},{},{},{}".format(basket_cx, int(round(basket_cy + basket_h/2)), basket_w, basket_h, basket_contour_area)
             cv2.imwrite("{}basket_({}).png".format(root, details), basket_res)
         print("Saved images: Session {}, Image {}".format(session_idx, image_idx))
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
             basket_detector = Detector(osp.join(COLOR_CONFIG_PATH, "basket_{}.txt".format(BASKET_COLOR)), "BasketDetector", "basket")
             basket_res, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            cam_proc.pub_basket.publish(Point(basket_cx, basket_cy, 0))
+            cam_proc.pub_basket.publish(Point(basket_cx, int(round(basket_cy + basket_h/2)), 0))
 
             if i % (RATE * SAVE_FREQUENCY) == 0 and i != 0:  # for debugging/analysis purposes
                 squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0

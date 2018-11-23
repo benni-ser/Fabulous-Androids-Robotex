@@ -52,17 +52,17 @@ class MainboardRunner:
 
     def set_speeds(self, front_left, front_right, back):
         if [front_left, front_right, back] != self.last_Speeds or self.is_timeout_reached("speeds"):
-            print("Speeds: {}; {}; {}".format(front_left, front_right, back))
+            print("Speeds update: {}; {}; {}".format(front_left, front_right, back))
             self.board.write("sd:{}:{}:{}:0".format(front_left, front_right, back))
             self.same_speed_last_time = time.time()
             self.last_Speeds = [front_left, front_right, back]
-            return # self.board.read_line()
+            return
 
     def set_thrower(self, speed, angle):
         if [speed, angle] != self.last_Thrower or self.is_timeout_reached("thrower"):
-            print("Thrower: speed -> {}; angle -> {}".format(speed, angle))
+            print("Thrower update: speed -> {}; angle -> {}".format(speed, angle))
             self.board.write("d:{}".format(speed))
-            if angle != self.last_Thrower[1]:
+            if angle != self.last_Thrower[1] and angle != -1:
                 self.board.write("sv:{}".format(angle))
             self.same_thrower_last_time = time.time()
             self.last_Thrower = [speed, angle]
@@ -73,7 +73,7 @@ class MainboardRunner:
         return self.board.read()
 
     def check_for_referee_commands(self):
-        line = self.board.read() #_line(True)  # TODO check if this works
+        line = self.board.read_line() #_line(True)  # TODO check if this works
         if line and len(line) > 7 and line.startswith("<ref:a") and line[6] == FIELD_ID and (
                 line[7] == ROBOT_ID or line[7] == "X"):
             print("REFEREE COMMAND RECEIVED: " + line)
