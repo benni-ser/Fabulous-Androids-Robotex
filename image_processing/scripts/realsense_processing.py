@@ -15,7 +15,7 @@ SAVE_BALL_IMGS = True
 SAVE_BASKET_IMGS = True
 SAVE_FREQUENCY = 2  # save picture every x seconds
 PRINT_INFO = False
-BASKET_COLOR = "red"  # options: 'blue' or 'red'
+BASKET_COLOR = "blue"  # options: 'blue' or 'red'
 
 COLOR_CONFIG_PATH = "/home/intel/catkin_ws/src/image_processing/config"
 

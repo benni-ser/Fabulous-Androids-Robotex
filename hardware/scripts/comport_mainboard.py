@@ -11,6 +11,8 @@ class ComportMainboard(threading.Thread):
 
     def __init__(self):
         threading.Thread.__init__(self)
+        self.last_read = time.time()
+        self.start_time = time.time()
 
     def open(self):
         try:
@@ -46,12 +48,19 @@ class ComportMainboard(threading.Thread):
         while c != '\n':
             command += c
             c = self.connection.read()
+        time_since_last = round(time.time() - self.last_read, 2)
+        exec_time = round(time.time() - self.start_time, 2)
+        print("READ WAS CALLED")
+        print("Time since last read: \t{} seconds".format(time_since_last))
+        print("Total execution time: \t{} seconds".format(exec_time))
+        self.last_read = time.time()
         return command
 
     def read_line(self, flush=True):
         if self.connection_opened:
             if flush:
                 self.connection.flush()
+            print("READ_LINE WAS CALLED")
             return self.connection.readline()
 
     def close(self):

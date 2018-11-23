@@ -27,9 +27,11 @@ class Detector:
         w = -1
         h = -1
         # Threshold the HSV image to get only necessary colors
-        lower_color = np.array(lower_hsv) if lower_hsv else np.array([self.minhue, self.minsat, self.minint])
-        upper_color = np.array(upper_hsv) if upper_hsv else np.array([self.maxhue, self.maxsat, self.maxint])
+        lower_color = np.array(lower_hsv) if len(lower_hsv) > 0 else np.array([self.minhue, self.minsat, self.minint])
+        upper_color = np.array(upper_hsv) if len(upper_hsv) > 0 else np.array([self.maxhue, self.maxsat, self.maxint])
         mask = cv2.inRange(hsv, lower_color, upper_color)
+        kernel = np.ones((3,3),np.uint8)
+        # mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         # Bitwise-AND mask and original image
         res = cv2.bitwise_and(frame, frame, mask=mask)
         im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -110,6 +112,7 @@ def check_basket(cx, cy, w, h, contour_area):
         return False
     if w > h:  # height should be greater than width
         return False
-    if cy < BASKET_V_UPPER_THRESHOLD:  # should not be on upper camera edge
+    if h < 40:
+    #if cy < BASKET_V_UPPER_THRESHOLD:  # should not be on upper camera edge
         return False
     return True

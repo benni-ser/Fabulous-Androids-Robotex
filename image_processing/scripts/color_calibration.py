@@ -15,7 +15,8 @@ def get_frame():
     if not aligned_depth_frame or not color_frame:
         return
     color_frame = np.asanyarray(color_frame.get_data())
-    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    color_frame = cv2.medianBlur(color_frame, 5)
+    hsv_frame = cv2.cvtColor(color_frame, cv2.COLOR_BGR2HSV)
     return color_frame, hsv_frame
 
 
@@ -27,7 +28,7 @@ def cancel():
     sys.exit()
 
 
-def nothing():
+def nothing(x):
     pass
 
 
@@ -55,8 +56,8 @@ if len(sys.argv) > 1:
         uv = int(f.readline())
 
     if len(sys.argv) == 3:
+        mode = sys.argv[2]
         if sys.argv[2] in ['ball', 'basket']:
-            mode = sys.argv[2]
             detector = Detector(filename, 'Detector', mode)
 
 
@@ -97,12 +98,23 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 while 1:
     # Threshold the HSV image
     frame, hsv = get_frame()
-    # frame = cv2.medianBlur(frame, 5)
-    if mode:
+    mask = cv2.inRange(hsv, lower_hsv, upper_hsv)
+
+    if mode in ['ball', 'basket']:
         result, _, _, _, _, _ = detector.detect(frame, hsv, lower_hsv, upper_hsv)
     else:
-        mask = cv2.inRange(hsv, lower_hsv, upper_hsv)
         result = cv2.bitwise_and(frame, frame, mask=mask)
+        if mode == 'hough':
+            #result = frame
+            circles = cv2.HoughCircles(mask,cv2.HOUGH_GRADIENT,1,20,
+                                    param1=30,param2=14,minRadius=0,maxRadius=0)
+            if circles is not None:
+                circles = np.uint16(np.around(circles))
+                for i in circles[0,:]:
+                    # draw the outer circle
+                    cv2.circle(result,(i[0],i[1]),i[2],(0,255,0),2)
+                    # draw the center of the circle
+                    cv2.circle(result,(i[0],i[1]),2,(0,0,255),3)
 
     cv2.imshow('result', result)
 

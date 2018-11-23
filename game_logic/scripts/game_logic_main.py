@@ -8,8 +8,8 @@ import math
 RATE = 8
 ROBOT_SPEED = 15  # general speed used for the robot
 
-THROWER_SPEED = 1000
-THROWER_ANGLE = 700  # min 700, max 1500
+THROWER_SPEED = 1500  # min 1200, max
+THROWER_ANGLE = 800  # min 800, max 1500
 
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
@@ -85,6 +85,7 @@ class Logic:
 
     def calc_and_send_speeds(self, direction_angle=90, speed=0, rotation=0):
         # convenience method to save about five characters
+        print("Game logic sends")
         self.speed_pub.publish(calc_speeds(direction_angle, speed, rotation))
 
 
@@ -140,8 +141,8 @@ if __name__ == '__main__':
         i = 0  # counting variable for searching a ball for a certain period
         j = 0  # counting variable throwing a ball for a certain period
         while not rospy.is_shutdown():
-            print("Ball state: x -> {}\ty -> {}  \t{}".format(l.ball_x, l.ball_y, l.ball_state))
-            print("Basket state: x -> {}\ty -> {}  \t{}".format(l.basket_x, l.basket_y, l.basket_state))
+            #print("Ball state: x -> {}\ty -> {}  \t{}".format(l.ball_x, l.ball_y, l.ball_state))
+            #print("Basket state: x -> {}\ty -> {}  \t{}".format(l.basket_x, l.basket_y, l.basket_state))
             if l.ball_state == NOT_DETECTED:
                 if i < RATE * 6:  # turn for x seconds (should be adjusted), to find the ball
                     l.calc_and_send_speeds(rotation=ROBOT_SPEED)
