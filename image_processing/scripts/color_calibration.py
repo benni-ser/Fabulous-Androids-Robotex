@@ -60,10 +60,8 @@ if len(sys.argv) > 1:
         if sys.argv[2] in ['ball', 'basket']:
             detector = Detector(filename, 'Detector', mode)
 
-
 lower_hsv = np.array([lh, ls, lv])
 upper_hsv = np.array([uh, us, uv])
-
 
 # set up camera pipeline
 pipeline = rs.pipeline()
@@ -105,16 +103,16 @@ while 1:
     else:
         result = cv2.bitwise_and(frame, frame, mask=mask)
         if mode == 'hough':
-            #result = frame
-            circles = cv2.HoughCircles(mask,cv2.HOUGH_GRADIENT,1,20,
-                                    param1=30,param2=14,minRadius=0,maxRadius=0)
+            # result = frame
+            circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 20,
+                                       param1=30, param2=14, minRadius=0, maxRadius=0)
             if circles is not None:
                 circles = np.uint16(np.around(circles))
-                for i in circles[0,:]:
+                for i in circles[0, :]:
                     # draw the outer circle
-                    cv2.circle(result,(i[0],i[1]),i[2],(0,255,0),2)
+                    cv2.circle(result, (i[0], i[1]), i[2], (0, 255, 0), 2)
                     # draw the center of the circle
-                    cv2.circle(result,(i[0],i[1]),2,(0,0,255),3)
+                    cv2.circle(result, (i[0], i[1]), 2, (0, 0, 255), 3)
 
     cv2.imshow('result', result)
 
@@ -135,6 +133,5 @@ while 1:
     lower_hsv = np.array([lh, ls, lv])
 
     time.sleep(.1)
-
 
 cv2.destroyAllWindows()

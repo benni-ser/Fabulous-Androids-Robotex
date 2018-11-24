@@ -1,10 +1,9 @@
 import cv2
 import numpy as np
 
-
 BALL_SQUARENESS_THRESHOLD = 60.0  # squareness threshold (in percent)
 BALL_V_UPPER_THRESHOLD = 40  # used to ignore 'ball objects' at the very top of the image
-BASKET_AREA_THRESHOLD = 750 # threshold for minimal contour area of basket object
+BASKET_AREA_THRESHOLD = 750  # threshold for minimal contour area of basket object
 
 
 class Detector:
@@ -30,7 +29,7 @@ class Detector:
         lower_color = np.array(lower_hsv) if len(lower_hsv) > 0 else np.array([self.minhue, self.minsat, self.minint])
         upper_color = np.array(upper_hsv) if len(upper_hsv) > 0 else np.array([self.maxhue, self.maxsat, self.maxint])
         mask = cv2.inRange(hsv, lower_color, upper_color)
-        kernel = np.ones((3,3),np.uint8)
+        # kernel = np.ones((3, 3), np.uint8)
         # mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         # Bitwise-AND mask and original image
         res = cv2.bitwise_and(frame, frame, mask=mask)
