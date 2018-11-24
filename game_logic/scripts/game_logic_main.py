@@ -99,6 +99,7 @@ class Logic:
         if abs(ball_angle) > 1.0:
             rotational_speed = min(ROBOT_SPEED, abs(ball_angle * ROBOT_SPEED * 0.05))
             rotational_speed = -rotational_speed if ball_angle < 0 else rotational_speed
+        # TODO if moving_speed == 0, rotate faster
         moving_speed = 0 if self.ball_y > DISTANCE_THRESHOLD else ROBOT_SPEED  # if ball is very close just rotate
         basket_bias = (self.ball_x - self.basket_y) * (90.0 / IMAGE_WIDTH) if self.basket_state != NOT_DETECTED else 0
         moving_angle = (90 - ball_angle) + basket_bias
@@ -119,16 +120,19 @@ class Logic:
                 self.ball_state = THROW_BALL
 
     def throw_ball(self):
-        # basket_y: max ~30, min ~330
+        # basket_y: max ~70, min ~450
         # speed: 1400 - 2100 -> 700 range
         # angle: 800 - 1500 -> 700 range
         # TODO speeds are too high in practice
-        basket_distance = min(max(0, IMAGE_HEIGHT - self.basket_y - 150), 300)  # 150-450 -> 0-300
-        speed = 1400 + basket_distance * 2.33 - 100
-        angle = 800 + basket_distance * 2.33
+        # TODO map basket position to actual (approximate) distance
+        basket_distance = min(max(0, IMAGE_HEIGHT - self.basket_y - 25), 400)  # not yet real distance
+        basket_distance = round(1.0101**(basket_distance-20), 2) # between 0 and 40
+        print("Basket distance: {}".format(basket_distance))
+        speed = 1400 + basket_distance * 17.5
+        angle = 800 + basket_distance * 17.5
         self.speeds = [10, -10, 0]  # drive forward
-        self.thrower_speed = int(round(speed, -1))
-        self.servo = int(round(angle, -1))
+        self.thrower_speed = int(round(speed, -1))  # round to tens
+        self.servo = int(round(angle, -1))  # round to tens
 
     def circle(self, speed=ROBOT_SPEED):
         # rotates around axis in front of the robot

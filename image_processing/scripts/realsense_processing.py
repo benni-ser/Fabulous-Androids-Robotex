@@ -93,9 +93,9 @@ if __name__ == '__main__':
             basket_res, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             cam_proc.pub_basket.publish(Point(basket_cx, int(round(basket_cy + basket_h/2)), 0))
 
-            if i % (RATE * SAVE_FREQUENCY) == 0 and i != 0:  # for debugging/analysis purposes
+            if i % int(RATE * SAVE_FREQUENCY) == 0 and i != 0:  # for debugging/analysis purposes
                 squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
-                save_images(i / (RATE * SAVE_FREQUENCY) - 1)
+                save_images(int(i / (RATE * SAVE_FREQUENCY) - 1))
                 if PRINT_INFO:
                     # test = np.array(cam_proc.hsv)
                     # l, w, v = test.shape

@@ -51,11 +51,12 @@ class MainboardRunner:
             self.board.write("sd:{}:{}:{}:0".format(front_left, front_right, back))
             self.same_speed_last_time = time.time()
             self.last_speeds = [front_left, front_right, back]
-        if thrower_speed != 0 and (thrower_speed != self.last_thrower_speed or self.is_timeout_reached("thrower")):
-            print("Thrower update: speed -> {}".format(thrower_speed))
-            self.board.write("d:{}".format(thrower_speed))
-            self.same_thrower_last_time = time.time()
-            self.last_thrower_speed = thrower_speed
+        if (thrower_speed != self.last_thrower_speed or self.is_timeout_reached("thrower")):
+            if not(thrower_speed == 0 and self.last_thrower_speed == 0):
+                print("Thrower update: speed -> {}".format(thrower_speed))
+                self.board.write("d:{}".format(thrower_speed))
+                self.same_thrower_last_time = time.time()
+                self.last_thrower_speed = thrower_speed
         if angle <= 0 and angle != self.last_servo:
             print("Thrower update: angle -> {}".format(angle))
             self.board.write("sv:{}".format(angle))

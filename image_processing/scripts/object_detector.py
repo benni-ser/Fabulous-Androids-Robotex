@@ -99,8 +99,15 @@ def check_ball(contour):
     if cy < BALL_V_UPPER_THRESHOLD:  # should not be on upper camera edge
         return False
     squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
-    if (squareness < BALL_SQUARENESS_THRESHOLD and y + h < 480) or contour_area > 3000:
+    if (squareness < BALL_SQUARENESS_THRESHOLD and y + h < 480) or contour_area > 3000:  # squareness not applied if ball on lower edge
         return False
+    # TODO does not detect very close balls in practice with following checks
+    '''if cy > 340 and contour_area < 800:  # ball is close -> area should be bigger
+        return False
+    elif cy > 200 and (contour_area > 1500 or contour_area < 200):  # ball somewhere in middle -> area should be middle-sized
+        return False
+    elif cy <= 200 and contour_area > 500:  # ball far away -> area should be small
+        return False'''
     return True
 
 
