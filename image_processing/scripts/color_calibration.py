@@ -99,7 +99,8 @@ while 1:
     mask = cv2.inRange(hsv, lower_hsv, upper_hsv)
 
     if mode in ['ball', 'basket']:
-        result, _, _, _, _, _ = detector.detect(frame, hsv, lower_hsv, upper_hsv)
+        result, _, cy, _, _, h = detector.detect(frame, hsv, lower_hsv, upper_hsv)
+        print("Lower border: " + str(int(round(cy + h/2))))
     else:
         result = cv2.bitwise_and(frame, frame, mask=mask)
         if mode == 'hough':

@@ -4,9 +4,10 @@ from general.msg import Point
 from general.msg import Speeds
 import math
 
-RATE = 8
+RATE = 16
 ROBOT_SPEED = 20  # general speed used for the robot
 
+THROWER_CALIBRATION_MODE = True
 THROWER_SPEED = 1500  # min 1200, max
 THROWER_ANGLES = [800, 1200]  # min 800, max 1500
 
@@ -99,10 +100,10 @@ class Logic:
         if abs(ball_angle) > 1.0:
             rotational_speed = min(ROBOT_SPEED, abs(ball_angle * ROBOT_SPEED * 0.05))
             rotational_speed = -rotational_speed if ball_angle < 0 else rotational_speed
-        # TODO if moving_speed == 0, rotate faster
         moving_speed = 0 if self.ball_y > DISTANCE_THRESHOLD else ROBOT_SPEED  # if ball is very close just rotate
-        basket_bias = (self.ball_x - self.basket_y) * (90.0 / IMAGE_WIDTH) if self.basket_state != NOT_DETECTED else 0
-        moving_angle = (90 - ball_angle) + basket_bias
+        rotational_speed = min(ROBOT_SPEED, rotational_speed * 2) if moving_speed == 0 else rotational_speed # if moving_speed == 0, rotate faster
+        # basket_bias = (self.ball_x - self.basket_y) * (90.0 / IMAGE_WIDTH) if self.basket_state != NOT_DETECTED else 0
+        moving_angle = (90 - ball_angle) # + basket_bias
         self.calc_speeds(moving_angle, moving_speed, rotational_speed)
 
     def find_basket(self):
@@ -112,24 +113,26 @@ class Logic:
         else:
             basket_angle = (self.basket_x - CENTER) * DEGREE_PER_PIXEL
             if abs(basket_angle) > 1.0:
-                circle_speed = min(ROBOT_SPEED, abs(basket_angle * ROBOT_SPEED * 0.1))
+                circle_speed = max(7, min(ROBOT_SPEED, abs(basket_angle * ROBOT_SPEED * 0.1)))
                 circle_speed = -circle_speed if basket_angle < 0 else circle_speed
                 self.circle(int(round(circle_speed)))
             else:
                 self.speeds = [0, 0, 0]
                 self.ball_state = THROW_BALL
 
-    def throw_ball(self):
+    def throw_ball(self, speed=-1, angle=-1):
         # basket_y: max ~70, min ~450
         # speed: 1400 - 2100 -> 700 range
         # angle: 800 - 1500 -> 700 range
         # TODO speeds are too high in practice
-        # TODO map basket position to actual (approximate) distance
-        basket_distance = min(max(0, IMAGE_HEIGHT - self.basket_y - 25), 400)  # not yet real distance
-        basket_distance = round(1.0101**(basket_distance-20), 2) # between 0 and 40
-        print("Basket distance: {}".format(basket_distance))
-        speed = 1400 + basket_distance * 17.5
-        angle = 800 + basket_distance * 17.5
+        # TODO map directly to thrower speeds with lookup table
+        if speed != -1:
+            basket_distance = min(max(0, IMAGE_HEIGHT - self.basket_y - 25), 400)  # not yet real distance
+            # basket_distance = round(1.0101**(basket_distance-20), 2) # between 0 and 40
+            basket_distance = round(23.3 - 0.888 * (1 - math.exp(basket_distance*0.0154)), 2)
+            print("Basket distance: {}".format(basket_distance))
+            speed = 1400 + basket_distance * 1.2  # 15, 12, 10, 10, 8.5
+        angle = 800 if angle == -1 else angle # + basket_distance * 17.5
         self.speeds = [10, -10, 0]  # drive forward
         self.thrower_speed = int(round(speed, -1))  # round to tens
         self.servo = int(round(angle, -1))  # round to tens
@@ -168,11 +171,16 @@ class Logic:
             # circle around ball until basket is centered
             self.find_basket()
         elif self.ball_state == THROW_BALL:
-            if j < RATE * 3:  # try to throw ball for 3 seconds (needs adjusting)
+            if j < RATE * 2:  # try to throw ball for 2 seconds (needs adjusting)
                 self.throw_ball()
                 j += 1
+            if j < RATE * 4 and THROWER_CALIBRATION_MODE:
+                self.speeds = [-10, 10, 0]
+                self.thrower_speed = 0
+                self.servo = -1
+                j += 1
             else:  # start over with ball searching after throw
-                self.ball_state = NOT_DETECTED
+                self.ball_state = NOT_DETECTED if not THROWER_CALIBRATION_MODE else FINISH
                 j = 0
         self.publish_speeds()
         return i, j

@@ -10,10 +10,10 @@ import os
 import os.path as osp
 
 # Configuration
-RATE = 8
+RATE = 16
 SAVE_BALL_IMGS = True
 SAVE_BASKET_IMGS = True
-SAVE_FREQUENCY = 2  # save picture every x seconds
+SAVE_FREQUENCY = 1  # save picture every x seconds
 PRINT_INFO = False
 BASKET_COLOR = "red"  # options: 'blue' or 'red'
 
@@ -92,6 +92,7 @@ if __name__ == '__main__':
             basket_detector = Detector(osp.join(COLOR_CONFIG_PATH, "basket_{}.txt".format(BASKET_COLOR)), "BasketDetector", "basket")
             basket_res, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             cam_proc.pub_basket.publish(Point(basket_cx, int(round(basket_cy + basket_h/2)), 0))
+            # print("Lower border: " + str(int(round(basket_cy + basket_h/2))))
 
             if i % int(RATE * SAVE_FREQUENCY) == 0 and i != 0:  # for debugging/analysis purposes
                 squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
