@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 import rospy
-import math
 import time
 from comport_mainboard import ComportMainboard
 from general.msg import Speeds

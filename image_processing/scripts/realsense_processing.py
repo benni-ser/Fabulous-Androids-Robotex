@@ -18,6 +18,7 @@ PRINT_INFO = False
 BASKET_COLOR = "red"  # options: 'blue' or 'red'
 
 COLOR_CONFIG_PATH = "/home/intel/catkin_ws/src/image_processing/config"
+IMG_PATH = "/home/intel/pics"
 
 
 class RealsenseProcessing():
@@ -31,6 +32,10 @@ class RealsenseProcessing():
         self.regular_image = None
         self.yuv = None
         self.hsv = None
+        self.session_idx = [int(float(name[:4])) for name in os.listdir(IMG_PATH) if
+                            osp.isfile(osp.join(IMG_PATH, name)) and len(name) > 4 and name[:4].isdigit()]
+        self.session_idx = max(self.session_idx) + 1 if self.session_idx else 0
+        self.image_idx = 0
 
     def run(self):
         self.pipeline = rs.pipeline()
@@ -56,30 +61,25 @@ class RealsenseProcessing():
         self.yuv = cv2.cvtColor(self.regular_image, cv2.COLOR_BGR2YUV)
         self.hsv = cv2.cvtColor(self.regular_image, cv2.COLOR_BGR2HSV)
 
-
-def save_images(image_idx):
-    if SAVE_BALL_IMGS or SAVE_BASKET_IMGS:
-        root = "/home/intel/pics/{}-{}-".format(str(session_idx).zfill(4), str(image_idx).zfill(4))
-        cv2.imwrite("{}pic_({},{})_sq{}.png".format(root, cx, cy, squareness), cam_proc.regular_image)
-        if SAVE_BALL_IMGS:
-            details = "{},{},{},{},{}".format(cx, cy, w, h, contour_area)
-            cv2.imwrite("{}ball_({}).png".format(root, details), ball_res)
-        if SAVE_BASKET_IMGS:
-            details = "{},{},{},{},{}".format(basket_cx, int(round(basket_cy + basket_h/2)), basket_w, basket_h, basket_contour_area)
-            cv2.imwrite("{}basket_({}).png".format(root, details), basket_res)
-        print("Saved images: Session {}, Image {}".format(session_idx, image_idx))
+    def save_images(self):
+        if SAVE_BALL_IMGS or SAVE_BASKET_IMGS:
+            root = "{}/{}-{}-".format(IMG_PATH, str(self.session_idx).zfill(4), str(self.image_idx).zfill(4))
+            cv2.imwrite("{}pic_({},{})_sq{}.png".format(root, cx, cy, squareness), cam_proc.regular_image)
+            if SAVE_BALL_IMGS:
+                details = "{},{},{},{},{}".format(cx, cy, w, h, contour_area)
+                cv2.imwrite("{}ball_({}).png".format(root, details), ball_res)
+            if SAVE_BASKET_IMGS:
+                details = "{},{},{},{},{}".format(basket_cx, int(round(basket_cy + basket_h / 2)), basket_w, basket_h,
+                                                  basket_contour_area)
+                cv2.imwrite("{}basket_({}).png".format(root, details), basket_res)
+            print("Saved images: Session {}, Image {}".format(self.session_idx, self.image_idx))
+            self.image_idx += 1
 
 
 if __name__ == '__main__':
     try:
         cam_proc = RealsenseProcessing()
         cam_proc.run()
-
-        # used for saving images
-        path = "/home/intel/pics"
-        session_idx = [int(float(name[:4])) for name in os.listdir(path) if osp.isfile(osp.join(path, name)) and len(name) > 4 and name[:4].isdigit()]
-        session_idx = max(session_idx) + 1 if session_idx else 0
-
         rate = rospy.Rate(RATE)
         i = 0
         while not rospy.is_shutdown():
@@ -89,14 +89,16 @@ if __name__ == '__main__':
             ball_res, cx, cy, contour_area, w, h = ball_detector.detect(cam_proc.regular_image, cam_proc.hsv)
             cam_proc.pub_ball.publish(Point(cx, cy, 0))
 
-            basket_detector = Detector(osp.join(COLOR_CONFIG_PATH, "basket_{}.txt".format(BASKET_COLOR)), "BasketDetector", "basket")
-            basket_res, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(cam_proc.regular_image, cam_proc.hsv)
-            cam_proc.pub_basket.publish(Point(basket_cx, int(round(basket_cy + basket_h/2)), 0))
+            basket_detector = Detector(osp.join(COLOR_CONFIG_PATH, "basket_{}.txt".format(BASKET_COLOR)),
+                                       "BasketDetector", "basket")
+            basket_res, basket_cx, basket_cy, basket_contour_area, basket_w, basket_h = basket_detector.detect(
+                cam_proc.regular_image, cam_proc.hsv)
+            cam_proc.pub_basket.publish(Point(basket_cx, int(round(basket_cy + basket_h / 2)), 0))
             # print("Lower border: " + str(int(round(basket_cy + basket_h/2))))
 
             if i % int(RATE * SAVE_FREQUENCY) == 0 and i != 0:  # for debugging/analysis purposes
                 squareness = round((float(min(w, h)) / max(w, h)) * 100, 2) if w > 0 and h > 0 else 0.0
-                save_images(int(i / (RATE * SAVE_FREQUENCY) - 1))
+                cam_proc.save_images()
                 if PRINT_INFO:
                     # test = np.array(cam_proc.hsv)
                     # l, w, v = test.shape

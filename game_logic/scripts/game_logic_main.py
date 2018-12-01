@@ -3,11 +3,14 @@ import rospy
 from general.msg import Point
 from general.msg import Speeds
 import math
+import numpy as np
+import bisect
 
 RATE = 16
-ROBOT_SPEED = 20  # general speed used for the robot
+ROBOT_SPEED = 20.0  # general speed used for the robot
 
 THROWER_CALIBRATION_MODE = True
+thrower_test_speeds = [1500, 1600, 1700]
 THROWER_SPEED = 1500  # min 1200, max
 THROWER_ANGLES = [800, 1200]  # min 800, max 1500
 
@@ -29,9 +32,9 @@ RIGHT = "right of center"
 FINISH = "Ball right in front"  # Ball is in right position, but basket is not yet centered
 THROW_BALL = "Throw ball"
 
-W1ANGLE = 60
-W2ANGLE = 300
-W3ANGLE = 180
+THROWER_SPEEDS_PATH = "/home/intel/catkin_ws/src/game_logic/config/thrower_speeds.tsv"
+
+WHEEL_ANGLES = [60, 300, 180]
 CAM_FOV = 69.4  # field of view of camera (in degrees)
 DEGREE_PER_PIXEL = CAM_FOV / IMAGE_WIDTH  # 0.1084375
 
@@ -52,13 +55,15 @@ class Logic:
         rospy.Subscriber("ball_coordinates", Point, self.ball_callback)
         rospy.Subscriber("basket_coordinates", Point, self.basket_callback)
         self.speed_pub = rospy.Publisher("speeds", Speeds, queue_size=10)
-        # self.thrower_pub = rospy.Publisher("thrower_config", Thrower, queue_size=10)
+        # in-memory lookup table for thrower speeds (2-dimensional)
+        lookup = np.loadtxt(THROWER_SPEEDS_PATH, dtype='int16', delimiter="\t", skiprows=1)
+        if len(lookup.shape) == 1:
+            lookup = np.reshape(lookup, (1, lookup.size))
+        self.thrower_lookup = lookup[lookup[:, 1].argsort()[::-1]] # order by basket_y from close to far away
 
-    # Task1
     def ball_callback(self, point):
         self.ball_x = point.x
         self.ball_y = point.y
-        # print("Ball point: \n" + str(point) + '\n')
         if self.ball_state != THROW_BALL:
             if CENTER_LEFT_BORDER <= point.x <= CENTER_RIGHT_BORDER:
                 if point.y > DISTANCE_THRESHOLD:  # Ball is both centered and close enough
@@ -113,7 +118,7 @@ class Logic:
         else:
             basket_angle = (self.basket_x - CENTER) * DEGREE_PER_PIXEL
             if abs(basket_angle) > 1.0:
-                circle_speed = max(7, min(ROBOT_SPEED, abs(basket_angle * ROBOT_SPEED * 0.1)))
+                circle_speed = max(7.0, min(ROBOT_SPEED, abs(basket_angle * ROBOT_SPEED * 0.1)))
                 circle_speed = -circle_speed if basket_angle < 0 else circle_speed
                 self.circle(int(round(circle_speed)))
             else:
@@ -132,7 +137,7 @@ class Logic:
             basket_distance = round(23.3 - 0.888 * (1 - math.exp(basket_distance*0.0154)), 2)
             print("Basket distance: {}".format(basket_distance))
             speed = 1400 + basket_distance * 1.2  # 15, 12, 10, 10, 8.5
-        angle = 800 if angle == -1 else angle # + basket_distance * 17.5
+        angle = 800 if angle == -1 else angle  # + basket_distance * 17.5
         self.speeds = [10, -10, 0]  # drive forward
         self.thrower_speed = int(round(speed, -1))  # round to tens
         self.servo = int(round(angle, -1))  # round to tens
@@ -147,15 +152,31 @@ class Logic:
         # direction_angle: 90 -> forward, 0 -> left, 180 -> right
         # rotation_speed: positive -> turn right, negative -> turn left
         # Formula: wheelLinearVelocity = robotSpeed * cos(robotDirectionAngle - wheelAngle) + robotAngularVelocity
-        w1speed = int(round(speed * math.cos(math.radians(direction_angle - W1ANGLE)) + rotation))
-        w2speed = int(round(speed * math.cos(math.radians(direction_angle - W2ANGLE)) + rotation))
-        w3speed = int(round(speed * math.cos(math.radians(direction_angle - W3ANGLE)) + rotation))
-        self.speeds = [w1speed, w2speed, w3speed]
+        for w in range(3):
+            self.speeds[w] = int(round(speed * math.cos(math.radians(direction_angle - WHEEL_ANGLES[w])) + rotation))
+
+    def calc_thrower_speed(self):
+        # get (sorted) list with all position/speed combis that used the same angle
+        # get two closest instances and interpolate new speed based on position
+        # lookup is ordered from closest (high value) to farthest instance (lower value)
+        lookup = [line for line in self.thrower_lookup if line[0] == self.servo]  # only use samples with same angle
+        k = bisect.bisect_left(self.basket_y, lookup[:,1])
+        if lookup[k, 1] == self.basket_y or k == 0:
+            self.thrower_speed = lookup[k, 2]
+        else:
+            lower_anchor = lookup[k-1]  # closest reference point that is closer to basket than current position
+            upper_anchor = lookup[k]  # closest reference point that is further away than current position
+            speed_per_pixel = abs(lower_anchor[2] - upper_anchor[2]) / abs(lower_anchor[1] - upper_anchor[1])
+            self.thrower_speed = lower_anchor[2] + speed_per_pixel * abs(lower_anchor[1] - self.basket_y)
 
     def act_competition_mode(self, i, j):
         if self.ball_state != THROW_BALL:
             self.thrower_speed = 0
             self.servo = 0
+            j = 0
+        if self.ball_state != NOT_DETECTED:
+            i = 0
+
         if self.ball_state == NOT_DETECTED:
             if i < RATE * 2:  # drive forward for x seconds (should be adjusted), to find the ball
                 self.calc_speeds(speed=ROBOT_SPEED)
@@ -185,6 +206,26 @@ class Logic:
         self.publish_speeds()
         return i, j
 
+    def act_thrower_calibration_mode(self, i):
+        if self.ball_state == THROW_BALL:
+            if i < RATE * 2:  # try to throw ball for 2 seconds (needs adjusting)
+                self.throw_ball()
+                i += 1
+            if i < RATE * 4:
+                self.speeds = [-10, 10, 0]
+                self.thrower_speed = 0
+                self.servo = -1
+                i += 1
+            else:  # start over with ball searching after throw
+                self.ball_state = FINISH
+                i = 0
+            self.publish_speeds()
+            return i
+        else:
+            i = 0
+            self.find_basket()
+        return i
+
 
 if __name__ == '__main__':
     try:
@@ -194,7 +235,10 @@ if __name__ == '__main__':
         i = 0  # counting variable for searching a ball for a certain period
         j = 0  # counting variable throwing a ball for a certain period
         while not rospy.is_shutdown():
-            i, j = logic.act_competition_mode(i, j)
+            if THROWER_CALIBRATION_MODE:
+                i = logic.act_thrower_calibration_mode(i)
+            else:
+                i, j = logic.act_competition_mode(i, j)
             rate.sleep()
     except rospy.ROSInterruptException:
         pass
