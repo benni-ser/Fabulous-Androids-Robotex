@@ -9,7 +9,7 @@ from general.msg import Point
 import os
 import os.path as osp
 
-# Configuration
+# Configurations
 RATE = 16
 SAVE_BALL_IMGS = True
 SAVE_BASKET_IMGS = True

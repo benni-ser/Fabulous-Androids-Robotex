@@ -7,8 +7,10 @@ from general.msg import Speeds
 RATE = 50
 LISTEN_TO_REFEREE_COMMANDS = True
 WAIT_FOR_START_SIGNAL = False  # set to True in competitions
-FIELD_ID = "A"
-ROBOT_ID = "A"
+AUTO_START = False
+AUTO_START_DURATION = 15 #seconds after start
+FIELD_ID = "D"
+ROBOT_ID = "D"
 COMMAND_TIMEOUT = 0.8  # in seconds
 
 
@@ -19,6 +21,8 @@ class MainboardRunner:
         # rospy.Subscriber("thrower_config", Thrower, self.thrower_callback)
         self.board = ComportMainboard()
         self.running = not WAIT_FOR_START_SIGNAL
+        self.start_time = time.time()
+        self.auto_start = False #AUTO_START and WAIT_FOR_START_SIGNAL
         self.same_speed_last_time = time.time()
         self.same_thrower_last_time = time.time()
         self.last_speeds = [0, 0, 0]
@@ -31,6 +35,9 @@ class MainboardRunner:
             time.sleep(.5)
             r = rospy.Rate(RATE)
             while not rospy.is_shutdown():
+                if self.auto_start and time.time() - self.start_time > AUTO_START_DURATION:
+                    self.running = True
+                    self.auto_start = False
                 self.check_for_referee_commands()
                 r.sleep()
         else:
@@ -56,9 +63,10 @@ class MainboardRunner:
                 self.board.write("d:{}".format(thrower_speed))
                 self.same_thrower_last_time = time.time()
                 self.last_thrower_speed = thrower_speed
-        if angle <= 0 and angle != self.last_servo:
+        if angle > 0 and angle != self.last_servo:
             print("Thrower update: angle -> {}".format(angle))
             self.board.write("sv:{}".format(angle))
+            self.last_servo = angle
 
     def get_speeds(self):
         self.board.write('gs')
@@ -66,13 +74,17 @@ class MainboardRunner:
 
     def check_for_referee_commands(self):
         line = self.board.read_line()
+        if line:
+            print("Line: {}".format(line))
         if line and len(line) > 7 and line.startswith("<ref:a") and line[6] == FIELD_ID and (
                 line[7] == ROBOT_ID or line[7] == "X"):
             print("REFEREE COMMAND RECEIVED: " + line)
             if line.startswith("START", 8):
                 self.running = True
+                self.auto_start = False
             elif line.startswith("STOP", 8):
                 self.running = False
+                self.auto_start = False
                 self.set_speeds(0, 0, 0, 0, 0)
             elif not line.startswith("PING", 8):
                 return
