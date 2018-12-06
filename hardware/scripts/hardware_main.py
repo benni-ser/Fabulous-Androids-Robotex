@@ -9,8 +9,8 @@ LISTEN_TO_REFEREE_COMMANDS = True
 WAIT_FOR_START_SIGNAL = False  # set to True in competitions
 AUTO_START = False
 AUTO_START_DURATION = 15 #seconds after start
-FIELD_ID = "D"
-ROBOT_ID = "D"
+FIELD_ID = "A"
+ROBOT_ID = "A"
 COMMAND_TIMEOUT = 0.8  # in seconds
 
 
@@ -74,8 +74,8 @@ class MainboardRunner:
 
     def check_for_referee_commands(self):
         line = self.board.read_line()
-        if line:
-            print("Line: {}".format(line))
+        #if line:
+            #print("Line: {}".format(line))
         if line and len(line) > 7 and line.startswith("<ref:a") and line[6] == FIELD_ID and (
                 line[7] == ROBOT_ID or line[7] == "X"):
             print("REFEREE COMMAND RECEIVED: " + line)
