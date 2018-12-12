@@ -55,8 +55,10 @@ class Logic:
         self.last_basket = NOT_DETECTED  # last basket seen
         self.ball_x = -1
         self.ball_y = -1
+        self.ball_angle = 0
         self.basket_x = -1
         self.basket_y = -1
+        self.basket_angle = 0
         self.speeds = [0, 0, 0]
         self.thrower_speed = 0
         self.servo = 0
@@ -75,6 +77,7 @@ class Logic:
     def ball_callback(self, point):
         self.ball_x = point.x
         self.ball_y = point.y
+        self.ball_angle = (self.ball_x - CENTER) * DEGREE_PER_PIXEL  # angle between central axis and ball (max: +/- 34.7)
         if THROWER_CALIBRATION_MODE:
             return
         if self.ball_state != THROW_BALL:
@@ -96,6 +99,7 @@ class Logic:
     def basket_callback(self, basketpoint):
         self.basket_x = basketpoint.x
         self.basket_y = basketpoint.y
+        self.basket_angle = (self.basket_x - CENTER) * DEGREE_PER_PIXEL  # angle from center to basket
         if BASKET_LEFT_BORDER <= basketpoint.x <= BASKET_RIGHT_BORDER:
             self.basket_state = CENTERED
         elif 0 <= basketpoint.x < BASKET_LEFT_BORDER:
@@ -117,7 +121,6 @@ class Logic:
     def drive_to_ball(self):
         # aim: drive to ball until it is centered and in front of robot (y ~ 400)
         # TODO parameter for ball distance -> adjust speed (and rotational speed)
-        ball_angle = (self.ball_x - CENTER) * DEGREE_PER_PIXEL  # angle between central axis and ball (max: +/- 34.7)
 
         # DISTANCE_THRESHOLDS = [390, 290, 200, 120]
         moving_speed = 0  # if ball is very close just rotate
@@ -130,22 +133,35 @@ class Logic:
         elif DISTANCE_THRESHOLDS[3] > self.ball_y:
             moving_speed = ROBOT_SPEED * 1.7
 
-        rotational_speed = 0
-        if abs(ball_angle) > ANGLE_THRESHOLD:  # if ball not in center -> rotate towards it
-            rotational_speed = abs(ball_angle * ROBOT_SPEED * 0.05)
-            rotational_speed = -rotational_speed if ball_angle < 0 else rotational_speed
+        rotation = 0
+        if abs(self.ball_angle) > ANGLE_THRESHOLD:  # if ball not in center -> rotate towards it
+            rotation = self.ball_angle * ROBOT_SPEED * 0.05
         if moving_speed == 0:  # if moving_speed == 0, rotate faster
-            rotational_speed *= 1.5
-            rotational_speed = max(7.0, abs(rotational_speed))
-        rotational_speed = min(ROBOT_SPEED, abs(rotational_speed))
-        rotational_speed = -rotational_speed if ball_angle < 0 else rotational_speed
+            rotation *= 1.5
+            rotation = max(7.0, abs(rotation))
+        rotation = min(ROBOT_SPEED, abs(rotation))
+        rotation = -rotation if self.ball_angle < 0 else rotation
         # basket_bias = (self.ball_x - self.basket_y) * (90.0 / IMAGE_WIDTH) if self.basket_state != NOT_DETECTED else 0
-        moving_angle = (90 - ball_angle) # + basket_bias
-        self.calc_speeds(moving_angle, moving_speed, rotational_speed)
+        direction = (90 - self.ball_angle) # + basket_bias
+        self.calc_speeds(direction, moving_speed, rotation)
 
     def find_basket(self):
         # called if ball is centered, but basket has yet to be found and centered as well
-        if self.basket_state == NOT_DETECTED:
+        if abs(self.basket_angle) >= ANGLE_THRESHOLD:
+            direction = 0 if self.basket_state == RIGHT or self.last_basket == RIGHT else 180
+            moving_speed = max(7.0, min(ROBOT_SPEED, abs(self.basket_angle * ROBOT_SPEED * 0.15)))
+            rotation = self.ball_y * moving_speed * 0.001  # if ball is closer (y is higher) rotate faster
+            rotation = rotation if direction == 0 else -rotation
+            self.calc_speeds(direction, moving_speed, rotation)
+        else:
+            if abs(self.ball_angle) < ANGLE_THRESHOLD:
+                self.speeds = [0, 0, 0]
+                self.ball_state = THROW_BALL
+            else:  # center ball as well
+                direction = 0 if self.ball_angle < 0 else 180
+                self.calc_speeds(direction, 7, 0)
+
+        '''if self.basket_state == NOT_DETECTED:
             self.circle(-ROBOT_SPEED if self.last_basket == LEFT else ROBOT_SPEED)
         else:
             basket_angle = (self.basket_x - CENTER) * DEGREE_PER_PIXEL# angle from center to basket
@@ -157,7 +173,7 @@ class Logic:
                 self.circle(int(round(circle_speed)))
             else:
                 self.speeds = [0, 0, 0]
-                self.ball_state = THROW_BALL
+                self.ball_state = THROW_BALL'''
 
     def throw_ball(self, speed=-1, angle=-1):
         # basket_y: max ~70, min ~450
@@ -217,13 +233,13 @@ class Logic:
 
         if self.ball_state == NOT_DETECTED:
             if i < int(round(RATE * 1)):  # drive forward for x seconds (should be adjusted), to find the ball
-                self.calc_speeds(speed=min(20, ROBOT_SPEED))
+                self.calc_speeds(speed=min(20.0, ROBOT_SPEED))
                 i += 1
             elif i < int(round(RATE * 6)):  # drive forward for x seconds (should be adjusted), to find the ball
-                self.calc_speeds(rotation=min(20, ROBOT_SPEED))
+                self.calc_speeds(rotation=min(20.0, ROBOT_SPEED))
                 i += 1
             elif i < int(round(RATE * 7)):  # turn for a few seconds, if ball still not detected
-                self.calc_speeds(speed=min(20, ROBOT_SPEED))
+                self.calc_speeds(speed=min(20.0, ROBOT_SPEED))
                 i += 1
             else:  # start over with rotating, if ball not detected
                 i = 0
