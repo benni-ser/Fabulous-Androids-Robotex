@@ -11,11 +11,11 @@ RATE = 16
 ROBOT_SPEED = 25.0  # general speed used for the robot
 
 # configs for thrower calibration mode
-THROWER_CALIBRATION_MODE = False
-thrower_test_speeds = [1550, 1550, 1550]
-thrower_test_angle = 800
-FREE_THROW_MODE = True
-free_throw_speed = 1550
+THROWER_TEST_MODE = True
+# thrower_test_speeds = [1550, 1550, 1550]
+# thrower_test_angle = 800
+FREE_THROW_MODE = True  # use fixed speed in the thrower calibration mode
+free_throw_speed = 1550  # fixed speed for 1300 mm free throws
 
 # thrower-related settings
 THROWER_ANGLES = [800, 1200]  # min 800, max 1500
@@ -78,7 +78,7 @@ class Logic:
         self.ball_x = point.x
         self.ball_y = point.y
         self.ball_angle = (self.ball_x - CENTER) * DEGREE_PER_PIXEL  # angle between central axis and ball (max: +/- 34.7)
-        if THROWER_CALIBRATION_MODE:
+        if THROWER_TEST_MODE:
             return
         if self.ball_state != THROW_BALL:
             if CENTER_LEFT_BORDER <= point.x <= CENTER_RIGHT_BORDER:
@@ -260,7 +260,7 @@ class Logic:
         self.publish_speeds()
         return i, j
 
-    def act_thrower_calibration_mode(self, i, j):
+    '''def act_thrower_calibration_mode(self, i, j):
         if i >= 0:
             if self.ball_state == THROW_BALL:
                 if i < int(round(RATE * 2.5)):  # try to throw ball for 3 seconds
@@ -281,16 +281,16 @@ class Logic:
             self.speeds = [0, 0, 0]
             self.thrower_speed = 0
         self.publish_speeds()
-        return i, j
+        return i, j'''
 
-    def act_free_throw_mode(self, i, j):
+    def act_thrower_test_mode(self, i, j):
         if self.ball_state != THROW_BALL:
             self.thrower_speed = 0
             self.servo = 0
             i = 0
 
         if self.ball_state == NOT_DETECTED:
-            self.calc_speeds() # do not move
+            self.calc_speeds()  # do not move
         elif self.ball_state in [CENTERED, LEFT, RIGHT]:
             self.drive_to_ball()
         elif self.ball_state == FINISH:
@@ -300,7 +300,7 @@ class Logic:
             if self.basket_state == NOT_DETECTED:
                 self.ball_state = FINISH
             elif i < int(round(RATE * 2.5)):  # try to throw ball for 2 seconds
-                self.throw_ball(speed=free_throw_speed)
+                self.throw_ball(speed=free_throw_speed if FREE_THROW_MODE else -1)
                 i += 1
             elif i < int(round(RATE * 5)):  # move backwards
                 self.speeds = [-20, 20, 0]
@@ -321,10 +321,8 @@ if __name__ == '__main__':
         j = 0  # counting variable throwing a ball for a certain period
         time.sleep(.5)  # wait for camera to send positions
         while not rospy.is_shutdown():
-            if THROWER_CALIBRATION_MODE:
-                i, j = logic.act_thrower_calibration_mode(i, j)
-            elif FREE_THROW_MODE:
-                i, j, = logic.act_free_throw_mode(i, j)
+            if THROWER_TEST_MODE:
+                i, j = logic.act_thrower_test_mode(i, j)
             else:
                 i, j = logic.act_competition_mode(i, j)
             rate.sleep()
