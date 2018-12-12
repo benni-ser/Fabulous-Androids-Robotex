@@ -14,7 +14,7 @@ ROBOT_SPEED = 25.0  # general speed used for the robot
 THROWER_TEST_MODE = True
 # thrower_test_speeds = [1550, 1550, 1550]
 # thrower_test_angle = 800
-FREE_THROW_MODE = True  # use fixed speed in the thrower calibration mode
+FREE_THROW_MODE = False  # use fixed speed in the thrower calibration mode
 free_throw_speed = 1550  # fixed speed for 1300 mm free throws
 
 # thrower-related settings
@@ -78,8 +78,6 @@ class Logic:
         self.ball_x = point.x
         self.ball_y = point.y
         self.ball_angle = (self.ball_x - CENTER) * DEGREE_PER_PIXEL  # angle between central axis and ball (max: +/- 34.7)
-        if THROWER_TEST_MODE:
-            return
         if self.ball_state != THROW_BALL:
             if CENTER_LEFT_BORDER <= point.x <= CENTER_RIGHT_BORDER:
                 #if self.ball_state == FINISH:
@@ -147,10 +145,11 @@ class Logic:
 
     def find_basket(self):
         # called if ball is centered, but basket has yet to be found and centered as well
-        if abs(self.basket_angle) >= ANGLE_THRESHOLD:
+        ''' # does not work properly yet
+        if self.basket_state == NOT_DETECTED or abs(self.basket_angle) >= ANGLE_THRESHOLD:
             direction = 0 if self.basket_state == RIGHT or self.last_basket == RIGHT else 180
-            moving_speed = max(7.0, min(ROBOT_SPEED, abs(self.basket_angle * ROBOT_SPEED * 0.15)))
-            rotation = self.ball_y * moving_speed * 0.001  # if ball is closer (y is higher) rotate faster
+            moving_speed = max(7.0, min(ROBOT_SPEED, abs(((self.basket_angle * 0.15) if self.basket_state == NOT_DETECTED else 1) * ROBOT_SPEED)))
+            rotation = self.ball_y * moving_speed * 0.0015  # if ball is closer (y is higher) rotate faster
             rotation = rotation if direction == 0 else -rotation
             self.calc_speeds(direction, moving_speed, rotation)
         else:
@@ -159,9 +158,9 @@ class Logic:
                 self.ball_state = THROW_BALL
             else:  # center ball as well
                 direction = 0 if self.ball_angle < 0 else 180
-                self.calc_speeds(direction, 7, 0)
+                self.calc_speeds(direction, 7, 0)'''
 
-        '''if self.basket_state == NOT_DETECTED:
+        if self.basket_state == NOT_DETECTED:
             self.circle(-ROBOT_SPEED if self.last_basket == LEFT else ROBOT_SPEED)
         else:
             basket_angle = (self.basket_x - CENTER) * DEGREE_PER_PIXEL# angle from center to basket
@@ -173,7 +172,7 @@ class Logic:
                 self.circle(int(round(circle_speed)))
             else:
                 self.speeds = [0, 0, 0]
-                self.ball_state = THROW_BALL'''
+                self.ball_state = THROW_BALL
 
     def throw_ball(self, speed=-1, angle=-1):
         # basket_y: max ~70, min ~450
