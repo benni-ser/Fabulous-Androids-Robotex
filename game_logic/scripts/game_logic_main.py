@@ -8,20 +8,20 @@ import bisect
 import time
 
 RATE = 16
-ROBOT_SPEED = 25.0  # general speed used for the robot
+ROBOT_SPEED = 30.0  # general speed used for the robot
 
 # configs for thrower calibration mode
-THROWER_TEST_MODE = True
+THROWER_TEST_MODE = False
 # thrower_test_speeds = [1550, 1550, 1550]
 # thrower_test_angle = 800
 FREE_THROW_MODE = False  # use fixed speed in the thrower calibration mode
-free_throw_speed = 1550  # fixed speed for 1300 mm free throws
+free_throw_speed = 1575  # fixed speed for 1300 mm free throws
 
 # thrower-related settings
 THROWER_ANGLES = [800, 1200]  # min 800, max 1500
-ANGLE_OFFSETS = [0, 2]  # in horizontal degrees, for each thrower angle
+ANGLE_OFFSETS = [1, 2]  # in horizontal degrees, for each thrower angle
 ANGLE_THRESHOLD = 0.6
-THROWER_SPEED_BIASES = [0, -25] # in thrower speed, for each thrower angle
+THROWER_SPEED_BIASES = [0, -10]#[0, -25] # in thrower speed, for each thrower angle
 
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
@@ -190,7 +190,7 @@ class Logic:
             else:
                 self.thrower_speed += THROWER_SPEED_BIASES[1]
         else:
-            self.thrower_speed = int(round(speed, -1))  # round to tens
+            self.thrower_speed = int(speed)
         print("Throwing ball->\tbasket_y: {}\tspeed: {}".format(self.basket_y, self.thrower_speed))
 
     def circle(self, speed=ROBOT_SPEED):
@@ -232,13 +232,10 @@ class Logic:
 
         if self.ball_state == NOT_DETECTED:
             if i < int(round(RATE * 1)):  # drive forward for x seconds (should be adjusted), to find the ball
-                self.calc_speeds(speed=min(20.0, ROBOT_SPEED))
+                self.calc_speeds(speed=ROBOT_SPEED)
                 i += 1
-            elif i < int(round(RATE * 6)):  # drive forward for x seconds (should be adjusted), to find the ball
-                self.calc_speeds(rotation=min(20.0, ROBOT_SPEED))
-                i += 1
-            elif i < int(round(RATE * 7)):  # turn for a few seconds, if ball still not detected
-                self.calc_speeds(speed=min(20.0, ROBOT_SPEED))
+            elif i < int(round(RATE * 6)):  # drive forward for 5 seconds (should be adjusted), to find the ball
+                self.calc_speeds(rotation=min(20.0, ROBOT_SPEED) * -1)
                 i += 1
             else:  # start over with rotating, if ball not detected
                 i = 0
@@ -259,32 +256,9 @@ class Logic:
         self.publish_speeds()
         return i, j
 
-    '''def act_thrower_calibration_mode(self, i, j):
-        if i >= 0:
-            if self.ball_state == THROW_BALL:
-                if i < int(round(RATE * 2.5)):  # try to throw ball for 3 seconds
-                    self.throw_ball(speed=thrower_test_speeds[j], angle=thrower_test_angle)
-                    i += 1
-                elif i < int(round(RATE * 5)):  # drive back to original position
-                    self.speeds = [-10, 10, 0]
-                    self.thrower_speed = 0
-                    i += 1
-                else:  # start over
-                    # self.ball_state = FINISH
-                    i = 0 if j < len(thrower_test_speeds)-1 else -1
-                    j += 1
-            else:
-                i = 0
-                self.find_basket()
-        else:
-            self.speeds = [0, 0, 0]
-            self.thrower_speed = 0
-        self.publish_speeds()
-        return i, j'''
-
     def act_thrower_test_mode(self, i, j):
+        self.thrower_speed = 0
         if self.ball_state != THROW_BALL:
-            self.thrower_speed = 0
             self.servo = 0
             i = 0
 
